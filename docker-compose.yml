@@ -1,0 +1,22 @@
+services:
+  hybrid-rag-eval:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hybrid-rag-eval
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - RAG_LLM_PROVIDER=${RAG_LLM_PROVIDER:-extractive-grounded}
+      - RAG_EMBEDDING_PROVIDER=${RAG_EMBEDDING_PROVIDER:-local-svd}
+      - RAG_INDEX_DIR=/app/data/index
+      - RAG_CORPUS_DIR=/app/data/corpus
+    volumes:
+      - rag_index_data:/app/data/index
+    restart: unless-stopped
+
+volumes:
+  rag_index_data:

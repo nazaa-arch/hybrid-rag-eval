@@ -1,0 +1,33 @@
+# Python caches & build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Test & lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments & secrets
+.venv/
+venv/
+.env
+
+# Runtime generated SQLite / vector index files
+data/index/
+*.sqlite
+*.sqlite3
+*.db
+*.npz
+
+# OS & editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

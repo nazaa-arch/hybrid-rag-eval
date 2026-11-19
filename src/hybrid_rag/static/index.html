@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hybrid RAG Eval — Retrieval &amp; Grounding Workbench</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --bg-panel: #111827;
+      --bg-card: #161f33;
+      --bg-elevated: #1e293b;
+      --border: #26334d;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --cyan: #06b6d4;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at top right, #172038 0%, var(--bg) 50%);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      line-height: 1.55;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(12px);
+      background: rgba(11, 15, 25, 0.85);
+      border-bottom: 1px solid var(--border);
+      padding: 0.9rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      display: grid; place-items: center; font-weight: 800; font-size: 0.95rem;
+      color: #fff; box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+    }
+    .brand h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+    .brand p { font-size: 0.78rem; color: var(--text-muted); }
+
+    .header-actions { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+    .status-pill {
+      font-family: var(--mono); font-size: 0.75rem;
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 0.35rem 0.65rem; border-radius: 999px; color: var(--text-muted);
+      display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--emerald); }
+
+    button, .btn-link {
+      font-family: var(--sans); font-size: 0.82rem; font-weight: 600;
+      border-radius: 8px; padding: 0.48rem 0.85rem; cursor: pointer;
+      border: 1px solid var(--border); background: var(--bg-elevated);
+      color: var(--text); text-decoration: none; transition: all 0.15s ease;
+    }
+    button:hover, .btn-link:hover { border-color: var(--accent); background: #26344d; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #4f46e5);
+      border-color: transparent; color: #fff;
+    }
+    .btn-primary:hover { filter: brightness(1.1); border-color: transparent; }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.25rem 1.5rem 3rem;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 1024px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .panel-title {
+      font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-muted);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .query-form { display: flex; flex-direction: column; gap: 0.75rem; }
+    .query-input-row { display: flex; gap: 0.6rem; }
+    textarea#queryInput {
+      flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px; padding: 0.75rem 0.9rem;
+      font-size: 0.95rem; font-family: var(--sans); resize: vertical; min-height: 64px;
+      outline: none;
+    }
+    textarea#queryInput:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.18); }
+
+    .controls-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.75rem; flex-wrap: wrap;
+    }
+    .mode-group {
+      display: inline-flex; background: var(--bg-card); padding: 3px;
+      border-radius: 10px; border: 1px solid var(--border);
+    }
+    .mode-btn {
+      border: none; background: transparent; color: var(--text-muted);
+      padding: 0.35rem 0.75rem; border-radius: 7px; font-size: 0.78rem;
+      font-family: var(--mono);
+    }
+    .mode-btn.active { background: var(--accent); color: #fff; }
+
+    .inline-opts { display: flex; align-items: center; gap: 0.85rem; font-size: 0.8rem; color: var(--text-muted); }
+    select {
+      background: var(--bg-card); color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px; padding: 0.25rem 0.45rem; font-family: var(--mono); font-size: 0.78rem;
+    }
+
+    .sample-chips { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+    .chip {
+      font-size: 0.75rem; font-weight: 500; padding: 0.3rem 0.6rem; border-radius: 999px;
+      background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25);
+      color: #c7d2fe; cursor: pointer;
+    }
+    .chip.abstain-chip {
+      background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.3); color: #fda4af;
+    }
+    .chip:hover { background: rgba(99, 102, 241, 0.22); }
+
+    .answer-box {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.05rem; min-height: 150px; display: flex; flex-direction: column; gap: 0.85rem;
+    }
+    .answer-box.abstained { border-color: rgba(245, 158, 11, 0.55); background: rgba(245, 158, 11, 0.06); }
+
+    .metrics-strip { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .badge {
+      font-family: var(--mono); font-size: 0.72rem; padding: 0.22rem 0.55rem;
+      border-radius: 6px; border: 1px solid var(--border); background: var(--bg-elevated);
+    }
+    .badge-emerald { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.12); color: #6ee7b7; }
+    .badge-amber { border-color: rgba(245,158,11,0.45); background: rgba(245,158,11,0.14); color: #fcd34d; }
+    .badge-cyan { border-color: rgba(6,182,212,0.4); background: rgba(6,182,212,0.12); color: #67e8f9; }
+
+    .answer-text { font-size: 0.94rem; color: #e2e8f0; white-space: pre-wrap; }
+    .cite-link {
+      font-family: var(--mono); font-size: 0.75rem;
+      background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(129, 140, 248, 0.45);
+      color: #c7d2fe; padding: 0.1rem 0.4rem; border-radius: 5px;
+      cursor: pointer; text-decoration: none; display: inline-block; margin: 0 2px;
+    }
+    .cite-link:hover { background: var(--accent); color: #fff; }
+
+    .citations-list { display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.75rem; }
+    .citation-card {
+      background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.6rem 0.75rem; font-size: 0.8rem; cursor: pointer;
+    }
+    .citation-card:hover { border-color: var(--accent); }
+    .citation-header { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.74rem; color: #a5b4fc; margin-bottom: 0.25rem; }
+
+    .hits-list { display: flex; flex-direction: column; gap: 0.7rem; max-height: 760px; overflow-y: auto; padding-right: 4px; }
+    .hit-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 0.85rem; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .hit-card.highlighted { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.35); }
+    .hit-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.4rem; }
+    .hit-id { font-family: var(--mono); font-size: 0.78rem; color: #a5b4fc; font-weight: 700; }
+    .hit-section { font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.45rem; }
+    .hit-scores {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem;
+      margin-bottom: 0.55rem;
+    }
+    .score-cell {
+      background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;
+      padding: 0.3rem 0.45rem; font-family: var(--mono); font-size: 0.7rem;
+    }
+    .score-cell span { display: block; color: var(--text-muted); font-size: 0.64rem; }
+    .score-cell strong { color: var(--text); font-size: 0.78rem; }
+
+    .signal-bars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.3rem 0.65rem; margin-bottom: 0.5rem; }
+    .sig-row { font-family: var(--mono); font-size: 0.68rem; color: var(--text-muted); }
+    .sig-track { height: 5px; background: var(--bg-panel); border-radius: 99px; overflow: hidden; margin-top: 2px; }
+    .sig-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--cyan)); border-radius: 99px; }
+
+    .hit-text { font-size: 0.8rem; color: #cbd5e1; white-space: pre-wrap; max-height: 120px; overflow-y: auto; }
+
+    .full-width { grid-column: 1 / -1; }
+
+    .eval-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem; align-items: start; }
+    @media (max-width: 900px) { .eval-grid { grid-template-columns: 1fr; } }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; font-family: var(--mono); }
+    th, td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--border); text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: var(--text-muted); font-weight: 600; font-size: 0.73rem; }
+    tr.best-row { background: rgba(99, 102, 241, 0.1); }
+
+    .chart-group { display: flex; flex-direction: column; gap: 0.75rem; }
+    .chart-metric { display: flex; flex-direction: column; gap: 0.25rem; }
+    .chart-label { font-size: 0.76rem; font-family: var(--mono); color: var(--text-muted); }
+    .bar-row { display: grid; grid-template-columns: 58px 1fr 48px; align-items: center; gap: 0.5rem; font-family: var(--mono); font-size: 0.72rem; }
+    .bar-track { height: 9px; background: var(--bg-card); border-radius: 99px; overflow: hidden; }
+    .bar-bm25 { background: #f59e0b; height: 100%; }
+    .bar-dense { background: #06b6d4; height: 100%; }
+    .bar-hybrid { background: #6366f1; height: 100%; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.72);
+      display: none; place-items: center; z-index: 50; padding: 1rem;
+    }
+    .modal-backdrop.open { display: grid; }
+    .modal {
+      background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px;
+      width: min(620px, 100%); max-height: 90vh; overflow-y: auto; padding: 1.25rem;
+      display: flex; flex-direction: column; gap: 0.9rem;
+    }
+    .modal h2 { font-size: 1rem; }
+    .field { display: flex; flex-direction: column; gap: 0.3rem; }
+    .field label { font-size: 0.78rem; color: var(--text-muted); }
+    .field input, .field textarea {
+      background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 0.55rem 0.7rem; font-family: var(--sans); font-size: 0.85rem;
+    }
+    .tabs { display: flex; gap: 0.5rem; }
+    .doc-list { display: flex; flex-direction: column; gap: 0.4rem; max-height: 220px; overflow-y: auto; }
+    .doc-item {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.5rem 0.7rem; font-size: 0.78rem;
+    }
+    .empty-state { color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">HR</div>
+      <div>
+        <h1>Hybrid RAG Eval Workbench</h1>
+        <p>Okapi BM25 + Dense Vector + RRF + Cross-Signal Reranker &amp; Citation Grounding</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="status-pill" id="healthPill"><span class="dot"></span> Loading index...</span>
+      <button type="button" id="openIngestBtn">+ Ingest Document</button>
+      <a class="btn-link" href="/docs" target="_blank">OpenAPI /docs</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Column: Query + Grounded Answer -->
+    <section class="panel">
+      <div class="panel-title">
+        <span>Query &amp; Grounded Answer</span>
+        <span id="providerBadge" class="badge">extractive-grounded</span>
+      </div>
+
+      <form class="query-form" id="queryForm">
+        <div class="query-input-row">
+          <textarea id="queryInput" placeholder="Ask a question in Indonesian or English (e.g., Berapa batas waktu notifikasi kebocoran data menurut UU PDP?)"></textarea>
+        </div>
+        <div class="controls-row">
+          <div class="mode-group" role="group" aria-label="Retrieval mode">
+            <button type="button" class="mode-btn active" data-mode="hybrid">hybrid (RRF+Rerank)</button>
+            <button type="button" class="mode-btn" data-mode="bm25">bm25</button>
+            <button type="button" class="mode-btn" data-mode="dense">dense</button>
+          </div>
+          <div class="inline-opts">
+            <label>Top-K:
+              <select id="topKSelect">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="8">8</option>
+              </select>
+            </label>
+            <label style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;">
+              <input type="checkbox" id="streamToggle" checked /> SSE Stream
+            </label>
+            <button type="submit" class="btn-primary" id="runQueryBtn">Run Query</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="sample-chips">
+        <span class="chip" data-q="Berapa batas waktu notifikasi kebocoran data pribadi menurut UU PDP dan apa saja isinya?">ID: Notifikasi Kebocoran UU PDP</span>
+        <span class="chip" data-q="What PSI thresholds define amber and critical data drift in the MLOps incident runbook?">EN: MLOps PSI Drift</span>
+        <span class="chip" data-q="Apa jadwal rotasi rahasia untuk API key, kredensial database, dan kunci KMS?">ID: Rotasi KMS &amp; Secrets</span>
+        <span class="chip" data-q="What validation gates are required before deploying Tier 1 AI models to production?">EN: AI Governance Gates</span>
+        <span class="chip abstain-chip" data-q="Bagaimana resep membuat rendang daging sapi khas Padang yang empuk?">Abstain Test: Out-of-Domain</span>
+      </div>
+
+      <div class="answer-box" id="answerBox">
+        <div class="metrics-strip" id="metricsStrip">
+          <span class="badge">Ready — run a query to inspect citations &amp; faithfulness</span>
+        </div>
+        <div class="answer-text" id="answerText">Answers include strict inline citations <code>[doc_id#chunk_id]</code> and automatically abstain when corpus evidence is insufficient.</div>
+        <div class="citations-list" id="citationsList" style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- Right Column: Multi-Stage Retrieval Breakdown -->
+    <section class="panel">
+      <div class="panel-title">
+        <span>Retrieval Explainability (BM25 / Dense / RRF / Rerank)</span>
+        <span id="hitsCount" class="badge">0 hits</span>
+      </div>
+      <div class="hits-list" id="hitsList">
+        <div class="empty-state">Execute a query to inspect per-stage ranks, RRF consensus scores, and cross-signal reranking features.</div>
+      </div>
+    </section>
+
+    <!-- Bottom Full Width: Evaluation Benchmark Comparison -->
+    <section class="panel full-width">
+      <div class="panel-title">
+        <span>Automated Evaluation Benchmark — BM25 vs Dense vs Hybrid (RRF + Rerank)</span>
+        <span id="evalMeta" class="badge">Loading eval/latest_report.json...</span>
+      </div>
+      <div id="evalContainer" class="eval-grid">
+        <div class="empty-state">Loading benchmark metrics...</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Ingest Modal -->
+  <div class="modal-backdrop" id="ingestModal">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2>Corpus Management &amp; Ingestion</h2>
+        <button type="button" id="closeIngestBtn">Close</button>
+      </div>
+      <div class="tabs">
+        <button type="button" class="mode-btn active" id="tabText">Paste Text / Markdown</button>
+        <button type="button" class="mode-btn" id="tabFile">Upload .md / .txt / .pdf</button>
+      </div>
+
+      <form id="ingestTextForm" style="display:flex;flex-direction:column;gap:0.7rem;">
+        <div class="field">
+          <label>Document ID (slug)</label>
+          <input type="text" id="ingestDocId" placeholder="e.g. sla_payment_2026" required />
+        </div>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="ingestTitle" placeholder="e.g. Payment Gateway SLA Policy" required />
+        </div>
+        <div class="field">
+          <label>Markdown / Text Content</label>
+          <textarea id="ingestContent" rows="6" placeholder="# Section&#10;Paste structured markdown or text here..." required></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Index Text Document</button>
+      </form>
+
+      <form id="ingestFileForm" style="display:none;flex-direction:column;gap:0.7rem;">
+        <div class="field">
+          <label>Select File (.md, .txt, .pdf)</label>
+          <input type="file" id="ingestFile" accept=".md,.markdown,.txt,.pdf" required />
+        </div>
+        <div class="field">
+          <label>Optional Document ID</label>
+          <input type="text" id="ingestFileDocId" placeholder="auto-derived from filename" />
+        </div>
+        <button type="submit" class="btn-primary">Upload &amp; Index File</button>
+      </form>
+
+      <div id="ingestStatus" style="font-size:0.8rem;font-family:var(--mono);color:var(--emerald);"></div>
+
+      <div>
+        <div class="panel-title" style="margin-bottom:0.45rem;"><span>Indexed Corpus</span></div>
+        <div class="doc-list" id="docList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentMode = "hybrid";
+    const $ = (id) => document.getElementById(id);
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function renderAnswerWithCitations(text) {
+      const escaped = escapeHtml(text);
+      return escaped.replace(/\[([a-zA-Z0-9_.-]+#[a-zA-Z0-9_.-]+)\]/g, (_, key) => {
+        return `<a class="cite-link" href="#hit-${encodeURIComponent(key)}" data-cite="${escapeHtml(key)}">[${escapeHtml(key)}]</a>`;
+      });
+    }
+
+    function highlightHit(citationKey) {
+      document.querySelectorAll(".hit-card.highlighted").forEach((el) => el.classList.remove("highlighted"));
+      const target = document.getElementById("hit-" + citationKey);
+      if (target) {
+        target.classList.add("highlighted");
+        target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+
+    function renderHits(hits) {
+      $("hitsCount").textContent = `${hits.length} hits`;
+      if (!hits.length) {
+        $("hitsList").innerHTML = `<div class="empty-state">No chunks retrieved for this query.</div>`;
+        return;
+      }
+      $("hitsList").innerHTML = hits.map((h) => {
+        const key = `${h.chunk.doc_id}#${h.chunk.chunk_id}`;
+        const sig = h.signals || {};
+        const bars = [
+          ["term_cov", sig.term_coverage || 0],
+          ["dense_sim", sig.dense_sim || 0],
+          ["rrf_norm", sig.rrf_norm || 0],
+          ["title_sec", sig.title_section_match || 0],
+          ["phrase", sig.phrase_boost || 0],
+          ["proximity", sig.proximity || 0],
+        ];
+        return `
+          <div class="hit-card" id="hit-${escapeHtml(key)}">
+            <div class="hit-top">
+              <div>
+                <div class="hit-id">#${h.rank} &middot; [${escapeHtml(key)}]</div>
+                <div class="hit-section">${escapeHtml(h.chunk.title)} &rsaquo; ${escapeHtml(h.chunk.section)}${h.chunk.page ? ` (p.${h.chunk.page})` : ""}</div>
+              </div>
+              <span class="badge badge-cyan">score ${Number(h.score).toFixed(3)}</span>
+            </div>
+            <div class="hit-scores">
+              <div class="score-cell"><span>BM25</span><strong>${h.bm25_rank ? `#${h.bm25_rank} (${h.bm25_score.toFixed(2)})` : "—"}</strong></div>
+              <div class="score-cell"><span>Dense</span><strong>${h.dense_rank ? `#${h.dense_rank} (${h.dense_score.toFixed(3)})` : h.dense_score.toFixed(3)}</strong></div>
+              <div class="score-cell"><span>RRF</span><strong>${h.rrf_score.toFixed(4)}</strong></div>
+              <div class="score-cell"><span>Rerank</span><strong>${h.rerank_score.toFixed(3)}</strong></div>
+            </div>
+            <div class="signal-bars">
+              ${bars.map(([name, val]) => `
+                <div class="sig-row">
+                  <div style="display:flex;justify-content:space-between;"><span>${name}</span><span>${(val * 100).toFixed(0)}%</span></div>
+                  <div class="sig-track"><div class="sig-fill" style="width:${Math.min(100, val * 100)}%"></div></div>
+                </div>
+              `).join("")}
+            </div>
+            <div class="hit-text">${escapeHtml(h.chunk.text)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderFinalResponse(data) {
+      const box = $("answerBox");
+      box.classList.toggle("abstained", Boolean(data.abstained));
+
+      const statusBadge = data.abstained
+        ? `<span class="badge badge-amber">ABSTAINED (Anti-Hallucination)</span>`
+        : `<span class="badge badge-emerald">GROUNDED &middot; Faithfulness ${(data.faithfulness_score * 100).toFixed(0)}%</span>`;
+
+      $("metricsStrip").innerHTML = `
+        ${statusBadge}
+        <span class="badge">mode: ${escapeHtml(data.mode)}</span>
+        <span class="badge">lang: ${escapeHtml(data.language.toUpperCase())}</span>
+        <span class="badge">conf: ${(data.confidence_score * 100).toFixed(0)}%</span>
+        <span class="badge">claims: ${data.supported_claims}/${data.total_claims}</span>
+        <span class="badge badge-cyan">${data.latency.total_ms.toFixed(1)} ms</span>
+      `;
+
+      $("answerText").innerHTML = renderAnswerWithCitations(data.answer);
+      $("answerText").querySelectorAll(".cite-link").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          highlightHit(el.dataset.cite);
+        });
+      });
+
+      const cites = data.citations || [];
+      if (cites.length) {
+        $("citationsList").style.display = "flex";
+        $("citationsList").innerHTML = cites.map((c) => `
+          <div class="citation-card" data-cite="${escapeHtml(c.citation_key)}">
+            <div class="citation-header">
+              <span>[${escapeHtml(c.citation_key)}] ${escapeHtml(c.title)} &rsaquo; ${escapeHtml(c.section)}</span>
+              <span>support ${(c.support_score * 100).toFixed(0)}%</span>
+            </div>
+            <div style="color:var(--text-muted);">${escapeHtml(c.snippet)}</div>
+          </div>
+        `).join("");
+        $("citationsList").querySelectorAll(".citation-card").forEach((el) => {
+          el.addEventListener("click", () => highlightHit(el.dataset.cite));
+        });
+      } else {
+        $("citationsList").style.display = "none";
+        $("citationsList").innerHTML = "";
+      }
+
+      if (data.hits) renderHits(data.hits);
+    }
+
+    async function runQuery(e) {
+      e.preventDefault();
+      const query = $("queryInput").value.trim();
+      if (query.length < 2) return;
+      const top_k = Number($("topKSelect").value);
+      const useStream = $("streamToggle").checked;
+
+      $("runQueryBtn").disabled = true;
+      $("answerBox").classList.remove("abstained");
+      $("metricsStrip").innerHTML = `<span class="badge">Retrieving (${currentMode})...</span>`;
+      $("answerText").textContent = "";
+      $("citationsList").style.display = "none";
+
+      try {
+        if (!useStream) {
+          const resp = await fetch("/v1/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query, mode: currentMode, top_k }),
+          });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.detail || "Query failed");
+          renderFinalResponse(data);
+        } else {
+          const resp = await fetch("/v1/query/stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query, mode: currentMode, top_k }),
+          });
+          if (!resp.ok) throw new Error("Streaming query failed");
+          const reader = resp.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let streamedAnswer = "";
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const blocks = buffer.split("\n\n");
+            buffer = blocks.pop() || "";
+
+            for (const block of blocks) {
+              const lines = block.split("\n");
+              let evName = "message";
+              let dataStr = "";
+              for (const ln of lines) {
+                if (ln.startsWith("event:")) evName = ln.slice(6).trim();
+                if (ln.startsWith("data:")) dataStr += ln.slice(5).trim();
+              }
+              if (!dataStr) continue;
+              const payload = JSON.parse(dataStr);
+              if (evName === "metadata") {
+                renderHits(payload.hits || []);
+                $("metricsStrip").innerHTML = `<span class="badge">Streaming (${payload.mode}) &middot; retrieval ${payload.retrieval_ms} ms</span>`;
+              } else if (evName === "token") {
+                streamedAnswer += payload.delta || "";
+                $("answerText").textContent = streamedAnswer;
+              } else if (evName === "done") {
+                renderFinalResponse(payload);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        $("metricsStrip").innerHTML = `<span class="badge badge-amber">Error</span>`;
+        $("answerText").textContent = String(err);
+      } finally {
+        $("runQueryBtn").disabled = false;
+      }
+    }
+
+    async function loadHealthAndDocs() {
+      const hResp = await fetch("/health");
+      const health = await hResp.json();
+      $("healthPill").innerHTML = `<span class="dot"></span> ${health.documents_indexed} docs &middot; ${health.chunks_indexed} chunks`;
+      $("providerBadge").textContent = `${health.llm_provider} | ${health.embedding_provider}`;
+
+      const dResp = await fetch("/v1/documents");
+      const docs = await dResp.json();
+      $("docList").innerHTML = docs.map((d) => `
+        <div class="doc-item">
+          <div>
+            <strong>${escapeHtml(d.doc_id)}</strong>
+            <div style="color:var(--text-muted);font-size:0.74rem;">${escapeHtml(d.title)} &middot; ${d.chunk_count} chunks (${d.source_type})</div>
+          </div>
+          <button type="button" onclick="deleteDoc('${escapeHtml(d.doc_id)}')">Delete</button>
+        </div>
+      `).join("");
+    }
+
+    async function deleteDoc(docId) {
+      await fetch(`/v1/documents/${encodeURIComponent(docId)}`, { method: "DELETE" });
+      await loadHealthAndDocs();
+    }
+    window.deleteDoc = deleteDoc;
+
+    async function loadEvalReport() {
+      try {
+        const resp = await fetch("/v1/eval/latest");
+        if (!resp.ok) {
+          $("evalMeta").textContent = "Not generated yet";
+          $("evalContainer").innerHTML = `<div class="empty-state">Run <code>python eval/run_eval.py</code> to generate the BM25 vs Dense vs Hybrid benchmark report.</div>`;
+          return;
+        }
+        const report = await resp.json();
+        $("evalMeta").textContent = `${report.total_queries} queries (${report.answerable_queries} answerable / ${report.unanswerable_queries} abstain)`;
+        const order = ["bm25", "dense", "hybrid"].filter((m) => report.modes[m]);
+
+        const tableHtml = `
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mode</th>
+                  <th>Recall@3</th>
+                  <th>Recall@5</th>
+                  <th>MRR</th>
+                  <th>NDCG@5</th>
+                  <th>Faithful</th>
+                  <th>Kw Recall</th>
+                  <th>Abstain Acc</th>
+                  <th>p50/p95 ms</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${order.map((m) => {
+                  const s = report.modes[m];
+                  return `
+                    <tr class="${m === "hybrid" ? "best-row" : ""}">
+                      <td><strong>${m.toUpperCase()}</strong></td>
+                      <td>${(s.recall_at_3 * 100).toFixed(1)}%</td>
+                      <td>${(s.recall_at_5 * 100).toFixed(1)}%</td>
+                      <td>${s.mrr.toFixed(3)}</td>
+                      <td>${s.ndcg_at_5.toFixed(3)}</td>
+                      <td>${(s.citation_faithfulness * 100).toFixed(1)}%</td>
+                      <td>${(s.keyword_answer_recall * 100).toFixed(1)}%</td>
+                      <td>${(s.abstention_accuracy * 100).toFixed(1)}%</td>
+                      <td>${s.latency_p50_ms.toFixed(1)} / ${s.latency_p95_ms.toFixed(1)}</td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        const chartMetrics = [
+          ["Recall@3", "recall_at_3"],
+          ["MRR", "mrr"],
+          ["NDCG@5", "ndcg_at_5"],
+          ["Abstention Accuracy", "abstention_accuracy"],
+        ];
+
+        const chartHtml = `
+          <div class="chart-group">
+            ${chartMetrics.map(([label, key]) => `
+              <div class="chart-metric">
+                <div class="chart-label">${label}</div>
+                ${order.map((m) => {
+                  const val = report.modes[m][key];
+                  return `
+                    <div class="bar-row">
+                      <span>${m}</span>
+                      <div class="bar-track"><div class="bar-${m}" style="width:${(val * 100).toFixed(1)}%"></div></div>
+                      <span>${(val * 100).toFixed(1)}%</span>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            `).join("")}
+          </div>
+        `;
+
+        $("evalContainer").innerHTML = tableHtml + chartHtml;
+      } catch (err) {
+        $("evalMeta").textContent = "Unavailable";
+      }
+    }
+
+    // Event bindings
+    document.querySelectorAll(".mode-group .mode-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".mode-group .mode-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentMode = btn.dataset.mode;
+      });
+    });
+
+    document.querySelectorAll(".chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        $("queryInput").value = chip.dataset.q;
+        $("queryForm").requestSubmit();
+      });
+    });
+
+    $("queryForm").addEventListener("submit", runQuery);
+    $("openIngestBtn").addEventListener("click", () => {
+      $("ingestModal").classList.add("open");
+      loadHealthAndDocs();
+    });
+    $("closeIngestBtn").addEventListener("click", () => $("ingestModal").classList.remove("open"));
+
+    $("tabText").addEventListener("click", () => {
+      $("tabText").classList.add("active"); $("tabFile").classList.remove("active");
+      $("ingestTextForm").style.display = "flex"; $("ingestFileForm").style.display = "none";
+    });
+    $("tabFile").addEventListener("click", () => {
+      $("tabFile").classList.add("active"); $("tabText").classList.remove("active");
+      $("ingestFileForm").style.display = "flex"; $("ingestTextForm").style.display = "none";
+    });
+
+    $("ingestTextForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("ingestStatus").textContent = "Indexing...";
+      const resp = await fetch("/v1/ingest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doc_id: $("ingestDocId").value.trim(),
+          title: $("ingestTitle").value.trim(),
+          content: $("ingestContent").value,
+          source_type: "markdown",
+        }),
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        $("ingestStatus").textContent = `Indexed '${data.document.doc_id}' (${data.chunks_indexed} chunks).`;
+        $("ingestTextForm").reset();
+        await loadHealthAndDocs();
+      } else {
+        $("ingestStatus").textContent = `Error: ${JSON.stringify(data.detail)}`;
+      }
+    });
+
+    $("ingestFileForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = $("ingestFile").files[0];
+      if (!file) return;
+      $("ingestStatus").textContent = "Uploading & indexing...";
+      const form = new FormData();
+      form.append("file", file);
+      if ($("ingestFileDocId").value.trim()) form.append("doc_id", $("ingestFileDocId").value.trim());
+      const resp = await fetch("/v1/ingest", { method: "POST", body: form });
+      const data = await resp.json();
+      if (resp.ok) {
+        $("ingestStatus").textContent = `Uploaded '${data.document.doc_id}' (${data.chunks_indexed} chunks).`;
+        $("ingestFileForm").reset();
+        await loadHealthAndDocs();
+      } else {
+        $("ingestStatus").textContent = `Error: ${JSON.stringify(data.detail)}`;
+      }
+    });
+
+    loadHealthAndDocs();
+    loadEvalReport();
+  </script>
+</body>
+</html>

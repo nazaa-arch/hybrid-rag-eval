@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hybrid-rag-eval"
+version = "0.1.0"
+description = "Production Hybrid RAG Engine with Okapi BM25 + Dense Vector retrieval, RRF, Cross-Signal Reranking, strict citation grounding, automatic abstention, SSE streaming, and automated evaluation."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [
+    { name = "Muhammad Naza Firmansyah" }
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.7.0",
+    "httpx>=0.27.0",
+    "numpy>=1.26.0",
+    "scipy>=1.13.0",
+    "scikit-learn>=1.5.0",
+    "PyMuPDF>=1.24.0",
+    "pypdf>=4.2.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.6.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+hybrid_rag = ["static/*.html"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "eval"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]

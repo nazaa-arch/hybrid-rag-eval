@@ -1,0 +1,290 @@
+[
+  {
+    "id": "q01",
+    "language": "id",
+    "category": "exact_policy",
+    "query": "Berapa batas waktu notifikasi kebocoran data pribadi menurut UU PDP dan informasi apa saja yang wajib dimuat?",
+    "answerable": true,
+    "expected_doc_ids": ["uu_pdp_ringkasan"],
+    "expected_keywords": ["3x24", "72 jam", "terungkap", "pemulihan"]
+  },
+  {
+    "id": "q02",
+    "language": "id",
+    "category": "exact_policy",
+    "query": "Apa saja contoh Data Pribadi Bersifat Spesifik berdasarkan UU No. 27 Tahun 2022?",
+    "answerable": true,
+    "expected_doc_ids": ["uu_pdp_ringkasan"],
+    "expected_keywords": ["kesehatan", "biometrik", "genetika", "keuangan"]
+  },
+  {
+    "id": "q03",
+    "language": "id",
+    "category": "multi_concept",
+    "query": "Kapan pengendali data wajib menunjuk Data Protection Officer (DPO) menurut UU PDP?",
+    "answerable": true,
+    "expected_doc_ids": ["uu_pdp_ringkasan"],
+    "expected_keywords": ["pelayanan publik", "skala besar", "spesifik", "DPO"]
+  },
+  {
+    "id": "q04",
+    "language": "id",
+    "category": "exact_policy",
+    "query": "Berapa maksimal denda administratif dan sanksi pidana pemalsuan data pribadi dalam UU PDP?",
+    "answerable": true,
+    "expected_doc_ids": ["uu_pdp_ringkasan"],
+    "expected_keywords": ["2%", "6 tahun", "Rp6 miliar"]
+  },
+  {
+    "id": "q05",
+    "language": "en",
+    "category": "exact_policy",
+    "query": "What are the three model risk tiers defined in SOP-AI-GOV-04 for AI Governance?",
+    "answerable": true,
+    "expected_doc_ids": ["ai_governance_sop"],
+    "expected_keywords": ["Tier 1", "Tier 2", "Tier 3", "High Risk"]
+  },
+  {
+    "id": "q06",
+    "language": "en",
+    "category": "multi_concept",
+    "query": "What minimum offline evaluation scores and fairness audit ratio must GenAI models pass before deployment?",
+    "answerable": true,
+    "expected_doc_ids": ["ai_governance_sop"],
+    "expected_keywords": ["0.90", "0.85", "0.80", "1.25"]
+  },
+  {
+    "id": "q07",
+    "language": "en",
+    "category": "exact_policy",
+    "query": "How long must immutable decision audit logs be retained for Tier 1 AI systems and within how many hours must an AI-SEV1 incident be reported?",
+    "answerable": true,
+    "expected_doc_ids": ["ai_governance_sop"],
+    "expected_keywords": ["5 years", "AI-SEV1", "1 hour"]
+  },
+  {
+    "id": "q08",
+    "language": "en",
+    "category": "paraphrase",
+    "query": "Can engineers send confidential production customer PII directly to public third-party LLM APIs without a DPA?",
+    "answerable": true,
+    "expected_doc_ids": ["ai_governance_sop"],
+    "expected_keywords": ["prohibited", "DPA", "zero-data-retention", "VPC"]
+  },
+  {
+    "id": "q09",
+    "language": "en",
+    "category": "exact_policy",
+    "query": "What are the RAG query latency SLA budgets for retrieval p95, TTFT, and end-to-end p95?",
+    "answerable": true,
+    "expected_doc_ids": ["mlops_incident_runbook"],
+    "expected_keywords": ["150 ms", "600 ms", "2,500 ms"]
+  },
+  {
+    "id": "q10",
+    "language": "en",
+    "category": "exact_policy",
+    "query": "What PSI thresholds separate nominal, amber warning, and critical red data drift in production monitoring?",
+    "answerable": true,
+    "expected_doc_ids": ["mlops_incident_runbook"],
+    "expected_keywords": ["0.10", "0.25", "Amber", "Critical"]
+  },
+  {
+    "id": "q11",
+    "language": "en",
+    "category": "multi_concept",
+    "query": "What traffic stages are used in canary deployment and what guardrails trigger an automatic rollback?",
+    "answerable": true,
+    "expected_doc_ids": ["mlops_incident_runbook"],
+    "expected_keywords": ["5%", "25%", "0.5%", "92%"]
+  },
+  {
+    "id": "q12",
+    "language": "en",
+    "category": "exact_policy",
+    "query": "Within how many hours must a blameless post-mortem be published after a SEV1 or SEV2 MLOps incident?",
+    "answerable": true,
+    "expected_doc_ids": ["mlops_incident_runbook"],
+    "expected_keywords": ["72 hours", "SEV1", "SEV2", "14 days"]
+  },
+  {
+    "id": "q13",
+    "language": "en",
+    "category": "multi_concept",
+    "query": "What target chunk size and overlap percentage are recommended for structure-aware recursive chunking?",
+    "answerable": true,
+    "expected_doc_ids": ["rag_architecture_guide"],
+    "expected_keywords": ["400", "800", "10%", "15%"]
+  },
+  {
+    "id": "q14",
+    "language": "en",
+    "category": "exact_policy",
+    "query": "What is the Reciprocal Rank Fusion (RRF) formula and default k constant used to combine BM25 and dense search?",
+    "answerable": true,
+    "expected_doc_ids": ["rag_architecture_guide"],
+    "expected_keywords": ["RRF", "60", "BM25"]
+  },
+  {
+    "id": "q15",
+    "language": "en",
+    "category": "paraphrase",
+    "query": "Which signals does second-stage reranking combine to improve Top-3 and Top-5 RAG precision?",
+    "answerable": true,
+    "expected_doc_ids": ["rag_architecture_guide"],
+    "expected_keywords": ["RRF", "coverage", "phrase", "proximity"]
+  },
+  {
+    "id": "q16",
+    "language": "id",
+    "category": "exact_policy",
+    "query": "Berapa durasi maksimal akses Just-in-Time (JIT) produksi dan frekuensi peninjauan hak akses RBAC dalam kebijakan keamanan cloud?",
+    "answerable": true,
+    "expected_doc_ids": ["cloud_security_policy"],
+    "expected_keywords": ["4 jam", "90 hari", "RBAC"]
+  },
+  {
+    "id": "q17",
+    "language": "id",
+    "category": "exact_policy",
+    "query": "Standar enkripsi apa yang digunakan untuk Encryption at Rest dan Encryption in Transit beserta peran KMS?",
+    "answerable": true,
+    "expected_doc_ids": ["cloud_security_policy"],
+    "expected_keywords": ["AES-256-GCM", "TLS 1.3", "KMS", "mTLS"]
+  },
+  {
+    "id": "q18",
+    "language": "id",
+    "category": "multi_concept",
+    "query": "Bagaimana jadwal rotasi rahasia untuk API key, kredensial database produksi, dan kunci KMS CMK serta batas waktu pencabutan jika bocor di Git?",
+    "answerable": true,
+    "expected_doc_ids": ["cloud_security_policy"],
+    "expected_keywords": ["90 hari", "30 hari", "365 hari", "15 menit"]
+  },
+  {
+    "id": "q19",
+    "language": "id",
+    "category": "exact_policy",
+    "query": "Berapa lama masa retensi hot storage SIEM dan cold immutable archive untuk audit log keamanan?",
+    "answerable": true,
+    "expected_doc_ids": ["cloud_security_policy"],
+    "expected_keywords": ["90 hari", "3 tahun", "5 tahun"]
+  },
+  {
+    "id": "q20",
+    "language": "id",
+    "category": "paraphrase",
+    "query": "Mengapa kata negasi seperti tidak dan bukan tidak boleh dihapus pada preprocessing sentimen NLP Bahasa Indonesia?",
+    "answerable": true,
+    "expected_doc_ids": ["indonesia_nlp_guidelines"],
+    "expected_keywords": ["negasi", "tidak", "polaritas"]
+  },
+  {
+    "id": "q21",
+    "language": "id",
+    "category": "exact_policy",
+    "query": "Bagaimana pola regex dan token masking PII untuk NIK dan nomor telepon Indonesia sebelum pelatihan model NLP?",
+    "answerable": true,
+    "expected_doc_ids": ["indonesia_nlp_guidelines"],
+    "expected_keywords": ["16 digit", "NIK_REDACTED", "PHONE_REDACTED", "+62"]
+  },
+  {
+    "id": "q22",
+    "language": "id",
+    "category": "multi_concept",
+    "query": "Mengapa Accuracy tidak cocok untuk dataset NLP imbalanced dan metrik apa yang direkomendasikan?",
+    "answerable": true,
+    "expected_doc_ids": ["indonesia_nlp_guidelines"],
+    "expected_keywords": ["Macro-F1", "PR-AUC", "imbalance"]
+  },
+  {
+    "id": "q23",
+    "language": "id",
+    "category": "colloquial_paraphrase",
+    "query": "cara menyembunyikan nomer hp dan identitas kependudukan sebelum teks dipakai melatih model NLP",
+    "answerable": true,
+    "expected_doc_ids": ["indonesia_nlp_guidelines"],
+    "expected_keywords": ["NIK", "PHONE_REDACTED", "PII"]
+  },
+  {
+    "id": "q24",
+    "language": "en",
+    "category": "paraphrase",
+    "query": "How do teams avoid leaking API secrets in Git repositories and how fast must leaked keys be revoked?",
+    "answerable": true,
+    "expected_doc_ids": ["cloud_security_policy"],
+    "expected_keywords": ["secret scanning", "15 menit", "revoke"]
+  },
+  {
+    "id": "q25",
+    "language": "en",
+    "category": "paraphrase",
+    "query": "Why does slicing text strictly by fixed character count hurt retrieval compared to recursive section splitting?",
+    "answerable": true,
+    "expected_doc_ids": ["rag_architecture_guide"],
+    "expected_keywords": ["mid-sentence", "headings", "recursive"]
+  },
+  {
+    "id": "q26",
+    "language": "id",
+    "category": "morphology_variant",
+    "query": "Apa hak subjek untuk menghapus dan memindahkan data pribadinya serta menolak profiling otomatis?",
+    "answerable": true,
+    "expected_doc_ids": ["uu_pdp_ringkasan"],
+    "expected_keywords": ["Penghapusan", "Portabilitas", "profiling"]
+  },
+  {
+    "id": "u01",
+    "language": "id",
+    "category": "unanswerable",
+    "query": "Bagaimana resep tradisional membuat rendang daging sapi khas Padang agar bumbunya meresap?",
+    "answerable": false,
+    "expected_doc_ids": [],
+    "expected_keywords": []
+  },
+  {
+    "id": "u02",
+    "language": "en",
+    "category": "unanswerable",
+    "query": "Who won the FIFA World Cup 2022 final in Qatar and what was the penalty shootout score?",
+    "answerable": false,
+    "expected_doc_ids": [],
+    "expected_keywords": []
+  },
+  {
+    "id": "u03",
+    "language": "id",
+    "category": "unanswerable",
+    "query": "Berapa tarif pajak penghasilan PPh 21 terbaru untuk penghasilan kena pajak di atas 5 miliar rupiah?",
+    "answerable": false,
+    "expected_doc_ids": [],
+    "expected_keywords": []
+  },
+  {
+    "id": "u04",
+    "language": "en",
+    "category": "unanswerable",
+    "query": "What is the current spot price of Bitcoin and Ethereum on Binance today?",
+    "answerable": false,
+    "expected_doc_ids": [],
+    "expected_keywords": []
+  },
+  {
+    "id": "u05",
+    "language": "en",
+    "category": "unanswerable",
+    "query": "How do I configure a PostgreSQL Citus sharding rebalance schedule with Django ORM migrations?",
+    "answerable": false,
+    "expected_doc_ids": [],
+    "expected_keywords": []
+  },
+  {
+    "id": "u06",
+    "language": "id",
+    "category": "unanswerable",
+    "query": "Kapan jadwal keberangkatan kereta api Argo Bromo Anggrek dari Stasiun Gambir ke Surabaya?",
+    "answerable": false,
+    "expected_doc_ids": [],
+    "expected_keywords": []
+  }
+]

@@ -1,0 +1,1666 @@
+{
+  "generated_at": "2026-11-19T18:31:39.829717Z",
+  "dataset_name": "hybrid-rag-eval-bilingual-v1",
+  "total_queries": 32,
+  "answerable_queries": 26,
+  "unanswerable_queries": 6,
+  "corpus_documents": 6,
+  "corpus_chunks": 55,
+  "modes": {
+    "bm25": {
+      "mode": "bm25",
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "ndcg_at_5": 0.8698,
+      "citation_faithfulness": 0.9999,
+      "keyword_answer_recall": 0.8301,
+      "abstention_accuracy": 0.9688,
+      "abstention_precision": 0.8571,
+      "abstention_recall": 1.0,
+      "latency_p50_ms": 10.07,
+      "latency_p95_ms": 11.18
+    },
+    "dense": {
+      "mode": "dense",
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "ndcg_at_5": 0.8811,
+      "citation_faithfulness": 0.9999,
+      "keyword_answer_recall": 0.8301,
+      "abstention_accuracy": 0.9688,
+      "abstention_precision": 0.8571,
+      "abstention_recall": 1.0,
+      "latency_p50_ms": 10.29,
+      "latency_p95_ms": 12.33
+    },
+    "hybrid": {
+      "mode": "hybrid",
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "ndcg_at_5": 0.8854,
+      "citation_faithfulness": 0.9999,
+      "keyword_answer_recall": 0.8205,
+      "abstention_accuracy": 0.9688,
+      "abstention_precision": 0.8571,
+      "abstention_recall": 1.0,
+      "latency_p50_ms": 15.51,
+      "latency_p95_ms": 17.37
+    }
+  },
+  "per_query_results": [
+    {
+      "id": "q01",
+      "language": "id",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "Berapa batas waktu notifikasi kebocoran data pribadi menurut UU PDP dan informasi apa saja yang wajib dimuat?",
+      "expected_doc_ids": [
+        "uu_pdp_ringkasan"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.3979,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.78
+        },
+        "dense": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.4758,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.25
+        },
+        "hybrid": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.4758,
+          "faithfulness_score": 1.0,
+          "latency_ms": 16.5
+        }
+      }
+    },
+    {
+      "id": "q02",
+      "language": "id",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "Apa saja contoh Data Pribadi Bersifat Spesifik berdasarkan UU No. 27 Tahun 2022?",
+      "expected_doc_ids": [
+        "uu_pdp_ringkasan"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5916,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.29
+        },
+        "dense": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5919,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.89
+        },
+        "hybrid": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5919,
+          "faithfulness_score": 0.9994,
+          "latency_ms": 16.32
+        }
+      }
+    },
+    {
+      "id": "q03",
+      "language": "id",
+      "category": "multi_concept",
+      "answerable": true,
+      "query": "Kapan pengendali data wajib menunjuk Data Protection Officer (DPO) menurut UU PDP?",
+      "expected_doc_ids": [
+        "uu_pdp_ringkasan"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7078,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.65
+        },
+        "dense": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7078,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.33
+        },
+        "hybrid": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7078,
+          "faithfulness_score": 1.0,
+          "latency_ms": 16.24
+        }
+      }
+    },
+    {
+      "id": "q04",
+      "language": "id",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "Berapa maksimal denda administratif dan sanksi pidana pemalsuan data pribadi dalam UU PDP?",
+      "expected_doc_ids": [
+        "uu_pdp_ringkasan"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6531,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.31
+        },
+        "dense": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6531,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.13
+        },
+        "hybrid": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6531,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.12
+        }
+      }
+    },
+    {
+      "id": "q05",
+      "language": "en",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "What are the three model risk tiers defined in SOP-AI-GOV-04 for AI Governance?",
+      "expected_doc_ids": [
+        "ai_governance_sop"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6314,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.09
+        },
+        "dense": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5698,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.06
+        },
+        "hybrid": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6314,
+          "faithfulness_score": 1.0,
+          "latency_ms": 14.79
+        }
+      }
+    },
+    {
+      "id": "q06",
+      "language": "en",
+      "category": "multi_concept",
+      "answerable": true,
+      "query": "What minimum offline evaluation scores and fairness audit ratio must GenAI models pass before deployment?",
+      "expected_doc_ids": [
+        "ai_governance_sop"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.463,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.57
+        },
+        "dense": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.4631,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.19
+        },
+        "hybrid": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.463,
+          "faithfulness_score": 1.0,
+          "latency_ms": 16.06
+        }
+      }
+    },
+    {
+      "id": "q07",
+      "language": "en",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "How long must immutable decision audit logs be retained for Tier 1 AI systems and within how many hours must an AI-SEV1 incident be reported?",
+      "expected_doc_ids": [
+        "ai_governance_sop"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.4342,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.84
+        },
+        "dense": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook"
+          ],
+          "abstained": false,
+          "confidence_score": 0.44,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.17
+        },
+        "hybrid": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "mlops_incident_runbook",
+            "ai_governance_sop",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.44,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.59
+        }
+      }
+    },
+    {
+      "id": "q08",
+      "language": "en",
+      "category": "paraphrase",
+      "answerable": true,
+      "query": "Can engineers send confidential production customer PII directly to public third-party LLM APIs without a DPA?",
+      "expected_doc_ids": [
+        "ai_governance_sop"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7674,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.97
+        },
+        "dense": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "rag_architecture_guide",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7674,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.42
+        },
+        "hybrid": {
+          "top_docs": [
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7674,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.73
+        }
+      }
+    },
+    {
+      "id": "q09",
+      "language": "en",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "What are the RAG query latency SLA budgets for retrieval p95, TTFT, and end-to-end p95?",
+      "expected_doc_ids": [
+        "mlops_incident_runbook"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7897,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.67
+        },
+        "dense": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "mlops_incident_runbook"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7897,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.39
+        },
+        "hybrid": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7897,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.91
+        }
+      }
+    },
+    {
+      "id": "q10",
+      "language": "en",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "What PSI thresholds separate nominal, amber warning, and critical red data drift in production monitoring?",
+      "expected_doc_ids": [
+        "mlops_incident_runbook"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6354,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.52
+        },
+        "dense": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6354,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.01
+        },
+        "hybrid": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6354,
+          "faithfulness_score": 1.0,
+          "latency_ms": 16.17
+        }
+      }
+    },
+    {
+      "id": "q11",
+      "language": "en",
+      "category": "multi_concept",
+      "answerable": true,
+      "query": "What traffic stages are used in canary deployment and what guardrails trigger an automatic rollback?",
+      "expected_doc_ids": [
+        "mlops_incident_runbook"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6714,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.89
+        },
+        "dense": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "mlops_incident_runbook"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6714,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.79
+        },
+        "hybrid": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "mlops_incident_runbook"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6714,
+          "faithfulness_score": 1.0,
+          "latency_ms": 14.19
+        }
+      }
+    },
+    {
+      "id": "q12",
+      "language": "en",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "Within how many hours must a blameless post-mortem be published after a SEV1 or SEV2 MLOps incident?",
+      "expected_doc_ids": [
+        "mlops_incident_runbook"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook"
+          ],
+          "abstained": false,
+          "confidence_score": 0.738,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.99
+        },
+        "dense": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "ai_governance_sop",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook"
+          ],
+          "abstained": false,
+          "confidence_score": 0.738,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.64
+        },
+        "hybrid": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "ai_governance_sop",
+            "mlops_incident_runbook"
+          ],
+          "abstained": false,
+          "confidence_score": 0.738,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.43
+        }
+      }
+    },
+    {
+      "id": "q13",
+      "language": "en",
+      "category": "multi_concept",
+      "answerable": true,
+      "query": "What target chunk size and overlap percentage are recommended for structure-aware recursive chunking?",
+      "expected_doc_ids": [
+        "rag_architecture_guide"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "cloud_security_policy",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6354,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.81
+        },
+        "dense": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6354,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.92
+        },
+        "hybrid": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6354,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.36
+        }
+      }
+    },
+    {
+      "id": "q14",
+      "language": "en",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "What is the Reciprocal Rank Fusion (RRF) formula and default k constant used to combine BM25 and dense search?",
+      "expected_doc_ids": [
+        "rag_architecture_guide"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.621,
+          "faithfulness_score": 1.0,
+          "latency_ms": 11.58
+        },
+        "dense": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.621,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.26
+        },
+        "hybrid": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.621,
+          "faithfulness_score": 1.0,
+          "latency_ms": 16.4
+        }
+      }
+    },
+    {
+      "id": "q15",
+      "language": "en",
+      "category": "paraphrase",
+      "answerable": true,
+      "query": "Which signals does second-stage reranking combine to improve Top-3 and Top-5 RAG precision?",
+      "expected_doc_ids": [
+        "rag_architecture_guide"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7563,
+          "faithfulness_score": 1.0,
+          "latency_ms": 11.67
+        },
+        "dense": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7563,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.91
+        },
+        "hybrid": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7563,
+          "faithfulness_score": 1.0,
+          "latency_ms": 16.37
+        }
+      }
+    },
+    {
+      "id": "q16",
+      "language": "id",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "Berapa durasi maksimal akses Just-in-Time (JIT) produksi dan frekuensi peninjauan hak akses RBAC dalam kebijakan keamanan cloud?",
+      "expected_doc_ids": [
+        "cloud_security_policy"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6081,
+          "faithfulness_score": 0.9992,
+          "latency_ms": 10.22
+        },
+        "dense": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6081,
+          "faithfulness_score": 0.9992,
+          "latency_ms": 10.53
+        },
+        "hybrid": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6713,
+          "faithfulness_score": 0.9992,
+          "latency_ms": 14.96
+        }
+      }
+    },
+    {
+      "id": "q17",
+      "language": "id",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "Standar enkripsi apa yang digunakan untuk Encryption at Rest dan Encryption in Transit beserta peran KMS?",
+      "expected_doc_ids": [
+        "cloud_security_policy"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6086,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.5
+        },
+        "dense": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "indonesia_nlp_guidelines",
+            "ai_governance_sop",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6086,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.85
+        },
+        "hybrid": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "indonesia_nlp_guidelines",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6086,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.84
+        }
+      }
+    },
+    {
+      "id": "q18",
+      "language": "id",
+      "category": "multi_concept",
+      "answerable": true,
+      "query": "Bagaimana jadwal rotasi rahasia untuk API key, kredensial database produksi, dan kunci KMS CMK serta batas waktu pencabutan jika bocor di Git?",
+      "expected_doc_ids": [
+        "cloud_security_policy"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6136,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.48
+        },
+        "dense": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6136,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.35
+        },
+        "hybrid": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6136,
+          "faithfulness_score": 1.0,
+          "latency_ms": 14.99
+        }
+      }
+    },
+    {
+      "id": "q19",
+      "language": "id",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "Berapa lama masa retensi hot storage SIEM dan cold immutable archive untuk audit log keamanan?",
+      "expected_doc_ids": [
+        "cloud_security_policy"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "ai_governance_sop",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7801,
+          "faithfulness_score": 0.9994,
+          "latency_ms": 10.18
+        },
+        "dense": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "ai_governance_sop",
+            "uu_pdp_ringkasan",
+            "cloud_security_policy"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7801,
+          "faithfulness_score": 0.9994,
+          "latency_ms": 10.43
+        },
+        "hybrid": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "ai_governance_sop",
+            "uu_pdp_ringkasan",
+            "cloud_security_policy"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7801,
+          "faithfulness_score": 0.9994,
+          "latency_ms": 14.29
+        }
+      }
+    },
+    {
+      "id": "q20",
+      "language": "id",
+      "category": "paraphrase",
+      "answerable": true,
+      "query": "Mengapa kata negasi seperti tidak dan bukan tidak boleh dihapus pada preprocessing sentimen NLP Bahasa Indonesia?",
+      "expected_doc_ids": [
+        "indonesia_nlp_guidelines"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6411,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.85
+        },
+        "dense": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6411,
+          "faithfulness_score": 1.0,
+          "latency_ms": 12.45
+        },
+        "hybrid": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6411,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.28
+        }
+      }
+    },
+    {
+      "id": "q21",
+      "language": "id",
+      "category": "exact_policy",
+      "answerable": true,
+      "query": "Bagaimana pola regex dan token masking PII untuk NIK dan nomor telepon Indonesia sebelum pelatihan model NLP?",
+      "expected_doc_ids": [
+        "indonesia_nlp_guidelines"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7699,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.98
+        },
+        "dense": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7699,
+          "faithfulness_score": 1.0,
+          "latency_ms": 12.24
+        },
+        "hybrid": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.7699,
+          "faithfulness_score": 1.0,
+          "latency_ms": 16.36
+        }
+      }
+    },
+    {
+      "id": "q22",
+      "language": "id",
+      "category": "multi_concept",
+      "answerable": true,
+      "query": "Mengapa Accuracy tidak cocok untuk dataset NLP imbalanced dan metrik apa yang direkomendasikan?",
+      "expected_doc_ids": [
+        "indonesia_nlp_guidelines"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5789,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.05
+        },
+        "dense": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5789,
+          "faithfulness_score": 1.0,
+          "latency_ms": 12.08
+        },
+        "hybrid": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5789,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.61
+        }
+      }
+    },
+    {
+      "id": "q23",
+      "language": "id",
+      "category": "colloquial_paraphrase",
+      "answerable": true,
+      "query": "cara menyembunyikan nomer hp dan identitas kependudukan sebelum teks dipakai melatih model NLP",
+      "expected_doc_ids": [
+        "indonesia_nlp_guidelines"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.4223,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.0
+        },
+        "dense": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "cloud_security_policy",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": false,
+          "confidence_score": 0.4223,
+          "faithfulness_score": 1.0,
+          "latency_ms": 11.81
+        },
+        "hybrid": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "cloud_security_policy"
+          ],
+          "abstained": false,
+          "confidence_score": 0.4223,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.24
+        }
+      }
+    },
+    {
+      "id": "q24",
+      "language": "en",
+      "category": "paraphrase",
+      "answerable": true,
+      "query": "How do teams avoid leaking API secrets in Git repositories and how fast must leaked keys be revoked?",
+      "expected_doc_ids": [
+        "cloud_security_policy"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "ai_governance_sop",
+            "cloud_security_policy",
+            "cloud_security_policy"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2937,
+          "faithfulness_score": 1.0,
+          "latency_ms": 7.3
+        },
+        "dense": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "rag_architecture_guide",
+            "ai_governance_sop",
+            "ai_governance_sop"
+          ],
+          "abstained": true,
+          "confidence_score": 0.3078,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.47
+        },
+        "hybrid": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "cloud_security_policy"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2937,
+          "faithfulness_score": 1.0,
+          "latency_ms": 12.62
+        }
+      }
+    },
+    {
+      "id": "q25",
+      "language": "en",
+      "category": "paraphrase",
+      "answerable": true,
+      "query": "Why does slicing text strictly by fixed character count hurt retrieval compared to recursive section splitting?",
+      "expected_doc_ids": [
+        "rag_architecture_guide"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5375,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.37
+        },
+        "dense": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5375,
+          "faithfulness_score": 1.0,
+          "latency_ms": 11.39
+        },
+        "hybrid": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "ai_governance_sop"
+          ],
+          "abstained": false,
+          "confidence_score": 0.5375,
+          "faithfulness_score": 1.0,
+          "latency_ms": 15.12
+        }
+      }
+    },
+    {
+      "id": "q26",
+      "language": "id",
+      "category": "morphology_variant",
+      "answerable": true,
+      "query": "Apa hak subjek untuk menghapus dan memindahkan data pribadinya serta menolak profiling otomatis?",
+      "expected_doc_ids": [
+        "uu_pdp_ringkasan"
+      ],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6187,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.94
+        },
+        "dense": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6187,
+          "faithfulness_score": 1.0,
+          "latency_ms": 13.19
+        },
+        "hybrid": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": false,
+          "confidence_score": 0.6187,
+          "faithfulness_score": 1.0,
+          "latency_ms": 16.36
+        }
+      }
+    },
+    {
+      "id": "u01",
+      "language": "id",
+      "category": "unanswerable",
+      "answerable": false,
+      "query": "Bagaimana resep tradisional membuat rendang daging sapi khas Padang agar bumbunya meresap?",
+      "expected_doc_ids": [],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2167,
+          "faithfulness_score": 1.0,
+          "latency_ms": 8.0
+        },
+        "dense": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2372,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.23
+        },
+        "hybrid": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2296,
+          "faithfulness_score": 1.0,
+          "latency_ms": 21.11
+        }
+      }
+    },
+    {
+      "id": "u02",
+      "language": "en",
+      "category": "unanswerable",
+      "answerable": false,
+      "query": "Who won the FIFA World Cup 2022 final in Qatar and what was the penalty shootout score?",
+      "expected_doc_ids": [],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "uu_pdp_ringkasan",
+            "rag_architecture_guide"
+          ],
+          "abstained": true,
+          "confidence_score": 0.1431,
+          "faithfulness_score": 1.0,
+          "latency_ms": 7.9
+        },
+        "dense": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook",
+            "rag_architecture_guide"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2026,
+          "faithfulness_score": 1.0,
+          "latency_ms": 8.92
+        },
+        "hybrid": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "rag_architecture_guide"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2026,
+          "faithfulness_score": 1.0,
+          "latency_ms": 18.43
+        }
+      }
+    },
+    {
+      "id": "u03",
+      "language": "id",
+      "category": "unanswerable",
+      "answerable": false,
+      "query": "Berapa tarif pajak penghasilan PPh 21 terbaru untuk penghasilan kena pajak di atas 5 miliar rupiah?",
+      "expected_doc_ids": [],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2594,
+          "faithfulness_score": 1.0,
+          "latency_ms": 7.85
+        },
+        "dense": {
+          "top_docs": [
+            "uu_pdp_ringkasan",
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "indonesia_nlp_guidelines",
+            "cloud_security_policy"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2594,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.57
+        },
+        "hybrid": {
+          "top_docs": [
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan",
+            "indonesia_nlp_guidelines",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2516,
+          "faithfulness_score": 1.0,
+          "latency_ms": 13.07
+        }
+      }
+    },
+    {
+      "id": "u04",
+      "language": "en",
+      "category": "unanswerable",
+      "answerable": false,
+      "query": "What is the current spot price of Bitcoin and Ethereum on Binance today?",
+      "expected_doc_ids": [],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "rag_architecture_guide"
+          ],
+          "abstained": true,
+          "confidence_score": 0.1455,
+          "faithfulness_score": 1.0,
+          "latency_ms": 6.95
+        },
+        "dense": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "rag_architecture_guide",
+            "rag_architecture_guide"
+          ],
+          "abstained": true,
+          "confidence_score": 0.197,
+          "faithfulness_score": 1.0,
+          "latency_ms": 10.43
+        },
+        "hybrid": {
+          "top_docs": [
+            "rag_architecture_guide",
+            "rag_architecture_guide",
+            "ai_governance_sop",
+            "ai_governance_sop",
+            "rag_architecture_guide"
+          ],
+          "abstained": true,
+          "confidence_score": 0.1745,
+          "faithfulness_score": 1.0,
+          "latency_ms": 11.76
+        }
+      }
+    },
+    {
+      "id": "u05",
+      "language": "en",
+      "category": "unanswerable",
+      "answerable": false,
+      "query": "How do I configure a PostgreSQL Citus sharding rebalance schedule with Django ORM migrations?",
+      "expected_doc_ids": [],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "ai_governance_sop",
+            "mlops_incident_runbook",
+            "mlops_incident_runbook"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2365,
+          "faithfulness_score": 1.0,
+          "latency_ms": 7.29
+        },
+        "dense": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "ai_governance_sop",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "ai_governance_sop"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2433,
+          "faithfulness_score": 1.0,
+          "latency_ms": 9.31
+        },
+        "hybrid": {
+          "top_docs": [
+            "mlops_incident_runbook",
+            "ai_governance_sop",
+            "mlops_incident_runbook",
+            "rag_architecture_guide",
+            "ai_governance_sop"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2433,
+          "faithfulness_score": 1.0,
+          "latency_ms": 12.65
+        }
+      }
+    },
+    {
+      "id": "u06",
+      "language": "id",
+      "category": "unanswerable",
+      "answerable": false,
+      "query": "Kapan jadwal keberangkatan kereta api Argo Bromo Anggrek dari Stasiun Gambir ke Surabaya?",
+      "expected_doc_ids": [],
+      "results": {
+        "bm25": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "indonesia_nlp_guidelines"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2746,
+          "faithfulness_score": 1.0,
+          "latency_ms": 7.59
+        },
+        "dense": {
+          "top_docs": [
+            "cloud_security_policy",
+            "uu_pdp_ringkasan",
+            "cloud_security_policy",
+            "uu_pdp_ringkasan",
+            "uu_pdp_ringkasan"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2746,
+          "faithfulness_score": 1.0,
+          "latency_ms": 11.64
+        },
+        "hybrid": {
+          "top_docs": [
+            "cloud_security_policy",
+            "cloud_security_policy",
+            "indonesia_nlp_guidelines",
+            "cloud_security_policy",
+            "cloud_security_policy"
+          ],
+          "abstained": true,
+          "confidence_score": 0.2746,
+          "faithfulness_score": 1.0,
+          "latency_ms": 13.21
+        }
+      }
+    }
+  ]
+}
