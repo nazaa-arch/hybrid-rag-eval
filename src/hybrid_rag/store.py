@@ -28,9 +28,10 @@ class IndexStore:
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON;")
+        conn.execute("PRAGMA busy_timeout = 5000;")
         try:
             with conn:
                 yield conn
@@ -39,6 +40,7 @@ class IndexStore:
 
     def _init_schema(self) -> None:
         with self._connect() as conn:
+            conn.execute("PRAGMA journal_mode = WAL;")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS documents (
@@ -184,6 +186,12 @@ class IndexStore:
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+
+    def clear_vector_artifacts(self) -> None:
+        """Remove persisted vector artifacts when the index becomes empty."""
+        for path in (self.vectors_path, self.vector_meta_path):
+            if path.is_file():
+                path.unlink()
 
     def load_vector_artifacts(self) -> tuple[list[str], np.ndarray, dict[str, Any]] | None:
         """Load persisted dense embeddings if present."""

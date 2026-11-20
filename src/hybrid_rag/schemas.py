@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 RetrievalMode = Literal["hybrid", "bm25", "dense"]
+
+SAFE_DOC_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$")
+
+
+def validate_doc_id(value: str) -> str:
+    """Validate doc_id against traversal, XSS, and citation-tag breaking characters."""
+    cleaned = value.strip()
+    if not SAFE_DOC_ID_RE.match(cleaned) or ".." in cleaned:
+        raise ValueError(
+            "Invalid doc_id: must start with an alphanumeric character, contain only "
+            "letters, digits, '_', '-', or '.', be 1-128 chars, and not contain '..'."
+        )
+    return cleaned
 
 
 class Document(BaseModel):
@@ -88,9 +102,14 @@ class IngestTextRequest(BaseModel):
 
     doc_id: str = Field(..., min_length=1, max_length=128)
     title: str = Field(..., min_length=1, max_length=300)
-    content: str = Field(..., min_length=1)
+    content: str = Field(..., min_length=1, max_length=2_000_000)
     source_type: Literal["markdown", "text"] = "markdown"
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("doc_id")
+    @classmethod
+    def _check_doc_id(cls, value: str) -> str:
+        return validate_doc_id(value)
 
 
 class IngestResponse(BaseModel):

@@ -49,3 +49,7 @@ def test_store_upsert_reload_and_delete(tmp_path: Path) -> None:
     assert store.delete_document("doc_alpha") is True
     assert store.delete_document("nonexistent") is False
     assert store.counts() == (0, 0)
+
+    # Clear stale vector artifacts when index becomes empty
+    store.clear_vector_artifacts()
+    assert store.load_vector_artifacts() is None

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import math
@@ -77,6 +78,8 @@ async def run_benchmark(
     dataset_path: Path | None = None,
     corpus_dir: Path | None = None,
     output_path: Path | None = None,
+    *,
+    use_env: bool = False,
 ) -> EvalSummary:
     """Run full benchmark across bm25, dense, and hybrid modes and save JSON report."""
     ds_path = dataset_path or (REPO_ROOT / "eval" / "qa_dataset.json")
@@ -87,13 +90,23 @@ async def run_benchmark(
 
     # Use an isolated temporary index directory so eval never pollutes user runtime state
     with tempfile.TemporaryDirectory(prefix="hybrid_rag_eval_") as tmp_dir:
-        settings = Settings(
-            index_dir=Path(tmp_dir),
-            corpus_dir=corp_dir,
-            llm_provider="extractive-grounded",
-            embedding_provider="local-svd",
-            auto_load_corpus=False,
-        )
+        if use_env:
+            base_settings = Settings.from_env()
+            settings = base_settings.model_copy(
+                update={
+                    "index_dir": Path(tmp_dir),
+                    "corpus_dir": corp_dir,
+                    "auto_load_corpus": False,
+                }
+            )
+        else:
+            settings = Settings(
+                index_dir=Path(tmp_dir),
+                corpus_dir=corp_dir,
+                llm_provider="extractive-grounded",
+                embedding_provider="local-svd",
+                auto_load_corpus=False,
+            )
         engine = HybridRAGEngine(settings=settings)
         engine.load_corpus_directory(corp_dir)
         doc_count, chunk_count = engine.counts()
@@ -248,7 +261,19 @@ def format_markdown_table(summary: EvalSummary) -> str:
 
 
 def main() -> None:
-    summary = asyncio.run(run_benchmark())
+    parser = argparse.ArgumentParser(
+        description="Run the Hybrid RAG Eval benchmark (BM25 vs Dense vs Hybrid)."
+    )
+    parser.add_argument(
+        "--use-env",
+        action="store_true",
+        help=(
+            "Use RAG_LLM_PROVIDER / RAG_EMBEDDING_PROVIDER from .env / environment "
+            "instead of the deterministic offline engine."
+        ),
+    )
+    args = parser.parse_args()
+    summary = asyncio.run(run_benchmark(use_env=args.use_env))
     print(format_markdown_table(summary))
     print(f"\nSaved full JSON report -> {REPO_ROOT / 'eval' / 'latest_report.json'}")
 

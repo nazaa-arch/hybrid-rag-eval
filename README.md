@@ -48,18 +48,24 @@ flowchart TD
 
 ## Measured Benchmark Results (`eval/run_eval.py`)
 
-Evaluated on `eval/qa_dataset.json` (**32 curated bilingual queries**: 26 answerable across 6 Indonesian & English enterprise documents + 6 unanswerable out-of-domain queries; **6 documents, 55 chunks**, offline `extractive-grounded` + `local-svd` mode):
+Evaluated on [`eval/qa_dataset.json`](eval/qa_dataset.json) (**32 curated bilingual queries**: 26 answerable across 6 Indonesian & English enterprise documents + 6 unanswerable out-of-domain queries; **6 documents, 55 chunks**) using the **deterministic offline engine (`extractive-grounded` + `local-svd`)** — zero API cost and 100% reproducible in CI:
 
 | Mode | Recall@3 | Recall@5 | MRR | NDCG@5 | Citation Faithfulness | Keyword Recall | Abstention Acc | Latency p50 / p95 (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| BM25 | 100.0% | 100.0% | 1.000 | 0.870 | 100.0% | 83.0% | 96.9% | 10.07 / 11.18 |
-| DENSE | 100.0% | 100.0% | 1.000 | 0.881 | 100.0% | 83.0% | 96.9% | 10.29 / 12.33 |
-| **HYBRID (RRF+Rerank)** | **100.0%** | **100.0%** | **1.000** | **0.885** | **100.0%** | 82.0% | **96.9%** | 15.51 / 17.37 |
+| BM25 | 100.0% | 100.0% | 1.000 | 0.870 | 100.0% | 83.0% | 96.9% | 42.95 / 52.18 |
+| DENSE | 100.0% | 100.0% | 1.000 | 0.881 | 100.0% | 83.0% | 96.9% | 41.62 / 58.85 |
+| **HYBRID (RRF+Rerank)** | **100.0%** | **100.0%** | **1.000** | **0.885** | **100.0%** | 82.0% | **96.9%** | 73.73 / 93.09 |
 
-Reproduce anytime:
+> **Methodology & Credibility Note**: Because this curated local corpus contains 6 topically distinct enterprise documents, document-level `Recall@3`/`MRR` saturate at `100%`/`1.000`, making **chunk-level NDCG@5** (`Hybrid 0.885 > Dense 0.881 > BM25 0.870`) the meaningful retrieval ranking signal. Likewise, `Citation Faithfulness` is ~`100%` under the deterministic `extractive-grounded` synthesizer (which selects sentences verbatim from cited chunks); when running generative LLMs (`ollama`, `gemini`, `openai`), the claim-level verifier actively flags paraphrased hallucinations. Latency numbers are local CPU measurements and will vary by hardware.
+
+Reproduce offline (CI default) or benchmark your live configured LLM/embedding provider:
 
 ```bash
+# Deterministic offline benchmark (zero API cost, CI default)
 python eval/run_eval.py
+
+# Benchmark live provider configured in .env (Ollama / Gemini / OpenAI)
+python eval/run_eval.py --use-env
 ```
 
 Results are saved to [`eval/latest_report.json`](eval/latest_report.json) and served live at `GET /v1/eval/latest`.
@@ -68,21 +74,28 @@ Results are saved to [`eval/latest_report.json`](eval/latest_report.json) and se
 
 ## Quickstart
 
-### 1. Local Python (Offline Ready)
+### 1. Local Python (Linux / macOS / Windows — Offline Ready)
 
 ```bash
 python -m venv .venv
-# Linux/macOS: source .venv/bin/activate
-# Windows PowerShell: .venv\Scripts\Activate.ps1
 
-pip install -r requirements.txt
+# Activate virtual environment:
+# Linux / macOS:
+source .venv/bin/activate
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+
+# Install package + dev tools (editable install)
+pip install -e ".[dev]"
+
+# Copy sample config (Linux/macOS: cp .env.example .env | PowerShell: Copy-Item .env.example .env)
 cp .env.example .env
 
 # Run automated benchmark
 python eval/run_eval.py
 
 # Start FastAPI server + Dark-Mode Web UI
-uvicorn hybrid_rag.api:app --app-dir src --reload --port 8000
+uvicorn hybrid_rag.api:app --reload --port 8000
 ```
 
 Open:
@@ -169,9 +182,9 @@ curl -X POST http://localhost:8000/v1/ingest \
 1. **Precision vs. Abstention Calibration (`min_confidence_threshold = 0.32`)**:
    In the 32-query benchmark, all 6 out-of-domain queries score in `[0.14, 0.275]` while in-language answerable queries score in `[0.40, 0.79]`. Setting the default gate at `0.32` achieves **100% abstention recall (0 hallucinations on unanswerable queries)** while trading off 1 cross-lingual English-to-Indonesian query (`q24`, confidence `0.294`). Teams using multilingual dense embeddings (e.g., `bge-m3` via Ollama or Gemini embeddings) can safely lower `RAG_MIN_CONFIDENCE_THRESHOLD` for cross-lingual workloads.
 2. **Offline Word + Char N-gram SVD vs. Neural Bi-Encoders**:
-   `LocalSVDEmbeddingBackend` fuses word bigrams with `char_wb` 3–5 grams before `TruncatedSVD` + L2 normalization. This captures Indonesian agglutinative morphology (*pelindungan* / *perlindungan*, *enkripsi* / *mengenkripsi*) and executes in **~10–17 ms p95 on CPU** with zero model downloads. When cross-lingual zero-shot retrieval is needed, the `EmbeddingBackend` interface swaps cleanly to Ollama/Gemini/OpenAI.
+   `LocalSVDEmbeddingBackend` fuses word bigrams with `char_wb` 3–5 grams before `TruncatedSVD` + L2 normalization. This captures Indonesian agglutinative morphology (*pelindungan* / *perlindungan*, *enkripsi* / *mengenkripsi*) and executes in **sub-100 ms p95 on CPU** (~10 ms unloaded) with zero model downloads. When cross-lingual zero-shot retrieval is needed, the `EmbeddingBackend` interface swaps cleanly to Ollama/Gemini/OpenAI.
 3. **Why Hybrid Beats Single-Mode on Chunk-Level Context Precision (NDCG@5)**:
-   On exact code/regex queries (`q21` NIK regex, `q12` SEV1/SEV2), BM25 outperforms Dense; on colloquial/paraphrased queries (`q23` *"nomer hp"*, `q15` reranker signals), Dense outperforms BM25. RRF + Cross-Signal Reranking combines both signals to achieve the highest chunk-level **NDCG@5 (0.885)** at only **~5 ms overhead** over single-mode retrieval.
+   On exact code/regex queries (`q21` NIK regex, `q12` SEV1/SEV2), BM25 outperforms Dense; on colloquial/paraphrased queries (`q23` *"nomer hp"*, `q15` reranker signals), Dense outperforms BM25. RRF + Cross-Signal Reranking combines both signals to achieve the highest chunk-level **NDCG@5 (0.885)** with minimal CPU overhead over single-mode retrieval.
 
 ---
 

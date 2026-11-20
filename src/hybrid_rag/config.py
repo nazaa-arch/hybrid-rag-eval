@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 def _load_dotenv(env_path: Path | None = None) -> None:
@@ -98,9 +98,16 @@ class Settings(BaseModel):
     eval_report_path: Path = Field(default=Path("eval/latest_report.json"))
     auto_load_corpus: bool = Field(default=True)
 
-    # Server
+    # Server & upload limits
     host: str = Field(default="0.0.0.0")
     port: int = Field(default=8000, ge=1, le=65535)
+    max_upload_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
+
+    @model_validator(mode="after")
+    def _validate_chunk_params(self) -> Settings:
+        if self.chunk_overlap >= self.chunk_size:
+            raise ValueError("chunk_overlap must be smaller than chunk_size")
+        return self
 
     @classmethod
     def from_env(cls, env_path: Path | None = None) -> Settings:
@@ -137,6 +144,7 @@ class Settings(BaseModel):
             auto_load_corpus=_env_bool("RAG_AUTO_LOAD_CORPUS", True),
             host=_env_str("RAG_HOST", "0.0.0.0"),
             port=_env_int("RAG_PORT", 8000),
+            max_upload_bytes=_env_int("RAG_MAX_UPLOAD_BYTES", 10 * 1024 * 1024),
         )
 
 

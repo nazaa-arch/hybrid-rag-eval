@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -18,6 +19,7 @@ from hybrid_rag.schemas import (
     LatencyBreakdown,
     QueryRequest,
     QueryResponse,
+    validate_doc_id,
 )
 from hybrid_rag.store import IndexStore
 from hybrid_rag.text_utils import detect_language
@@ -53,23 +55,27 @@ class HybridRAGEngine:
             max_answer_sentences=self.settings.max_answer_sentences,
         )
         self.provider = provider or create_answer_provider(self.settings, self.grounding)
+        self._lock = threading.RLock()
         self.rebuild_index_from_store()
 
     def rebuild_index_from_store(self) -> tuple[int, int]:
         """Load persisted chunks from SQLite, refit indices, and persist vector artifacts."""
-        chunks = self.store.load_all_chunks()
-        embeddings = self.retriever.index(chunks)
-        if chunks:
-            self.store.save_vector_artifacts(
-                citation_keys=[c.citation_key for c in chunks],
-                embeddings=embeddings,
-                meta={
-                    "embedding_backend": self.embedding_backend.name,
-                    "chunk_count": len(chunks),
-                    "vector_dim": int(embeddings.shape[1]) if embeddings.ndim == 2 else 0,
-                },
-            )
-        return self.store.counts()
+        with self._lock:
+            chunks = self.store.load_all_chunks()
+            embeddings = self.retriever.index(chunks)
+            if chunks:
+                self.store.save_vector_artifacts(
+                    citation_keys=[c.citation_key for c in chunks],
+                    embeddings=embeddings,
+                    meta={
+                        "embedding_backend": self.embedding_backend.name,
+                        "chunk_count": len(chunks),
+                        "vector_dim": int(embeddings.shape[1]) if embeddings.ndim == 2 else 0,
+                    },
+                )
+            else:
+                self.store.clear_vector_artifacts()
+            return self.store.counts()
 
     def load_corpus_directory(self, corpus_dir: Path | None = None) -> int:
         """Ingest all .md, .txt, and .pdf files in a directory and rebuild index once."""
@@ -78,10 +84,11 @@ class HybridRAGEngine:
             return 0
         supported = {".md", ".markdown", ".txt", ".pdf"}
         files = sorted(p for p in target.iterdir() if p.is_file() and p.suffix.lower() in supported)
-        for file_path in files:
-            doc, chunks = self.chunker.chunk_file(file_path)
-            self.store.upsert_document(doc, chunks)
-        self.rebuild_index_from_store()
+        with self._lock:
+            for file_path in files:
+                doc, chunks = self.chunker.chunk_file(file_path)
+                self.store.upsert_document(doc, chunks)
+            self.rebuild_index_from_store()
         return len(files)
 
     def ingest_text(
@@ -94,15 +101,17 @@ class HybridRAGEngine:
         metadata: dict[str, Any] | None = None,
     ) -> IngestResponse:
         """Chunk, store, and index raw markdown or text."""
+        safe_doc_id = validate_doc_id(doc_id)
         doc, chunks = self.chunker.chunk_text(
-            doc_id=doc_id,
+            doc_id=safe_doc_id,
             title=title,
             content=content,
             source_type=source_type,
             metadata=metadata,
         )
-        self.store.upsert_document(doc, chunks)
-        total_docs, total_chunks = self.rebuild_index_from_store()
+        with self._lock:
+            self.store.upsert_document(doc, chunks)
+            total_docs, total_chunks = self.rebuild_index_from_store()
         return IngestResponse(
             document=doc,
             chunks_indexed=len(chunks),
@@ -119,11 +128,19 @@ class HybridRAGEngine:
         title: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> IngestResponse:
-        """Ingest uploaded .md, .txt, or .pdf bytes."""
-        path = Path(filename)
+        """Ingest uploaded .md, .txt, or .pdf bytes with strict filename & doc_id sanitization."""
+        safe_filename = Path(filename.replace("\\", "/")).name or "upload.txt"
+        path = Path(safe_filename)
         suffix = path.suffix.lower()
-        resolved_doc_id = doc_id or self.chunker._slugify(path.stem)
-        meta = {"filename": filename, **(metadata or {})}
+        if suffix not in {".md", ".markdown", ".txt", ".pdf"}:
+            raise ValueError(f"Unsupported file extension '{suffix}'. Use .md, .txt, or .pdf.")
+
+        resolved_doc_id = (
+            validate_doc_id(doc_id)
+            if doc_id
+            else validate_doc_id(self.chunker._slugify(path.stem))
+        )
+        meta = {"filename": safe_filename, **(metadata or {})}
 
         if suffix == ".pdf":
             resolved_title = title or path.stem.replace("_", " ").replace("-", " ").title()
@@ -133,7 +150,7 @@ class HybridRAGEngine:
                 pdf_bytes=raw_bytes,
                 metadata=meta,
             )
-        elif suffix in {".md", ".markdown", ".txt"}:
+        else:
             text = raw_bytes.decode("utf-8", errors="replace")
             source_type = "markdown" if suffix in {".md", ".markdown"} else "text"
             resolved_title = title or self.chunker._infer_title(text, fallback=path.stem)
@@ -144,11 +161,10 @@ class HybridRAGEngine:
                 source_type=source_type,
                 metadata=meta,
             )
-        else:
-            raise ValueError(f"Unsupported file extension '{suffix}'. Use .md, .txt, or .pdf.")
 
-        self.store.upsert_document(doc, chunks)
-        total_docs, total_chunks = self.rebuild_index_from_store()
+        with self._lock:
+            self.store.upsert_document(doc, chunks)
+            total_docs, total_chunks = self.rebuild_index_from_store()
         return IngestResponse(
             document=doc,
             chunks_indexed=len(chunks),
@@ -158,10 +174,11 @@ class HybridRAGEngine:
 
     def delete_document(self, doc_id: str) -> bool:
         """Delete a document by doc_id and refresh the in-memory & vector indices."""
-        deleted = self.store.delete_document(doc_id)
-        if deleted:
-            self.rebuild_index_from_store()
-        return deleted
+        with self._lock:
+            deleted = self.store.delete_document(doc_id)
+            if deleted:
+                self.rebuild_index_from_store()
+            return deleted
 
     def list_documents(self) -> list[Document]:
         """List all indexed documents."""

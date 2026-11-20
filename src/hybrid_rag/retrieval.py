@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 from abc import ABC, abstractmethod
 from collections import Counter
@@ -9,7 +10,7 @@ from collections.abc import Sequence
 
 import httpx
 import numpy as np
-from scipy.sparse import hstack
+from scipy.sparse import csr_matrix, hstack
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import normalize
@@ -17,6 +18,8 @@ from sklearn.preprocessing import normalize
 from hybrid_rag.config import Settings
 from hybrid_rag.schemas import Chunk, RetrievalHit, RetrievalMode, RetrievalSignals
 from hybrid_rag.text_utils import content_tokens, extract_bigrams, normalize_text, tokenize
+
+logger = logging.getLogger(__name__)
 
 
 class BM25Retriever:
@@ -140,22 +143,47 @@ class LocalSVDEmbeddingBackend(EmbeddingBackend):
             max_features=12000,
         )
         self._svd: TruncatedSVD | None = None
+        self._has_word_vocab = False
+        self._has_char_vocab = False
         self._fitted = False
 
-    def _vectorize(self, texts: Sequence[str], *, fit: bool) -> np.ndarray | object:
+    def _vectorize(self, texts: Sequence[str], *, fit: bool) -> csr_matrix:
         cleaned = [normalize_text(t) for t in texts]
+        mats: list[csr_matrix] = []
+
         if fit:
-            w_mat = self._word_vec.fit_transform(cleaned)
-            c_mat = self._char_vec.fit_transform(cleaned)
+            try:
+                w_mat = self._word_vec.fit_transform(cleaned)
+                self._has_word_vocab = w_mat.shape[1] > 0
+                if self._has_word_vocab:
+                    mats.append((w_mat * 1.15).tocsr())
+            except ValueError:
+                self._has_word_vocab = False
+
+            try:
+                c_mat = self._char_vec.fit_transform(cleaned)
+                self._has_char_vocab = c_mat.shape[1] > 0
+                if self._has_char_vocab:
+                    mats.append((c_mat * 0.85).tocsr())
+            except ValueError:
+                self._has_char_vocab = False
         else:
-            w_mat = self._word_vec.transform(cleaned)
-            c_mat = self._char_vec.transform(cleaned)
+            if self._has_word_vocab:
+                mats.append((self._word_vec.transform(cleaned) * 1.15).tocsr())
+            if self._has_char_vocab:
+                mats.append((self._char_vec.transform(cleaned) * 0.85).tocsr())
+
+        if not mats:
+            return csr_matrix((len(cleaned), 1), dtype=np.float32)
+        if len(mats) == 1:
+            return mats[0]
         # Weight word features slightly higher while retaining subword char_wb morphology
-        return hstack([w_mat * 1.15, c_mat * 0.85]).tocsr()
+        return hstack(mats).tocsr()
 
     def fit_transform(self, texts: Sequence[str]) -> np.ndarray:
         if not texts:
             self._fitted = False
+            self._svd = None
             return np.zeros((0, 1), dtype=np.float32)
 
         sparse_mat = self._vectorize(texts, fit=True)
@@ -190,12 +218,18 @@ class OllamaEmbeddingBackend(EmbeddingBackend):
         self.model = model
         self.timeout = timeout
 
-    def _fetch(self, text: str) -> np.ndarray:
-        resp = httpx.post(
-            f"{self.base_url}/api/embeddings",
-            json={"model": self.model, "prompt": text},
-            timeout=self.timeout,
-        )
+    def _fetch(self, text: str, *, client: httpx.Client | None = None) -> np.ndarray:
+        if client is not None:
+            resp = client.post(
+                f"{self.base_url}/api/embeddings",
+                json={"model": self.model, "prompt": text},
+            )
+        else:
+            resp = httpx.post(
+                f"{self.base_url}/api/embeddings",
+                json={"model": self.model, "prompt": text},
+                timeout=self.timeout,
+            )
         resp.raise_for_status()
         vec = np.asarray(resp.json()["embedding"], dtype=np.float32)
         norm = float(np.linalg.norm(vec))
@@ -204,14 +238,15 @@ class OllamaEmbeddingBackend(EmbeddingBackend):
     def fit_transform(self, texts: Sequence[str]) -> np.ndarray:
         if not texts:
             return np.zeros((0, 1), dtype=np.float32)
-        return np.vstack([self._fetch(t) for t in texts]).astype(np.float32)
+        with httpx.Client(timeout=self.timeout) as client:
+            return np.vstack([self._fetch(t, client=client) for t in texts]).astype(np.float32)
 
     def embed_query(self, query: str) -> np.ndarray:
         return self._fetch(query)
 
 
 class GeminiEmbeddingBackend(EmbeddingBackend):
-    """Remote dense embeddings via Google Gemini `embedContent` REST API."""
+    """Remote dense embeddings via Google Gemini `embedContent` REST API (header auth)."""
 
     def __init__(self, api_key: str, base_url: str, model: str, timeout: float = 30.0) -> None:
         self.name = f"gemini:{model}"
@@ -220,13 +255,19 @@ class GeminiEmbeddingBackend(EmbeddingBackend):
         self.model = model
         self.timeout = timeout
 
-    def _fetch(self, text: str) -> np.ndarray:
-        url = f"{self.base_url}/models/{self.model}:embedContent?key={self.api_key}"
-        resp = httpx.post(
-            url,
-            json={"content": {"parts": [{"text": text}]}},
-            timeout=self.timeout,
-        )
+    def _headers(self) -> dict[str, str]:
+        return {
+            "x-goog-api-key": self.api_key,
+            "Content-Type": "application/json",
+        }
+
+    def _fetch(self, text: str, *, client: httpx.Client | None = None) -> np.ndarray:
+        url = f"{self.base_url}/models/{self.model}:embedContent"
+        payload = {"content": {"parts": [{"text": text}]}}
+        if client is not None:
+            resp = client.post(url, headers=self._headers(), json=payload)
+        else:
+            resp = httpx.post(url, headers=self._headers(), json=payload, timeout=self.timeout)
         resp.raise_for_status()
         vec = np.asarray(resp.json()["embedding"]["values"], dtype=np.float32)
         norm = float(np.linalg.norm(vec))
@@ -235,7 +276,8 @@ class GeminiEmbeddingBackend(EmbeddingBackend):
     def fit_transform(self, texts: Sequence[str]) -> np.ndarray:
         if not texts:
             return np.zeros((0, 1), dtype=np.float32)
-        return np.vstack([self._fetch(t) for t in texts]).astype(np.float32)
+        with httpx.Client(timeout=self.timeout) as client:
+            return np.vstack([self._fetch(t, client=client) for t in texts]).astype(np.float32)
 
     def embed_query(self, query: str) -> np.ndarray:
         return self._fetch(query)
@@ -244,6 +286,8 @@ class GeminiEmbeddingBackend(EmbeddingBackend):
 class OpenAIEmbeddingBackend(EmbeddingBackend):
     """Remote dense embeddings via OpenAI `/v1/embeddings` REST API."""
 
+    _BATCH_SIZE = 128
+
     def __init__(self, api_key: str, base_url: str, model: str, timeout: float = 30.0) -> None:
         self.name = f"openai:{model}"
         self.api_key = api_key
@@ -251,13 +295,19 @@ class OpenAIEmbeddingBackend(EmbeddingBackend):
         self.model = model
         self.timeout = timeout
 
-    def _fetch_batch(self, texts: Sequence[str]) -> np.ndarray:
-        resp = httpx.post(
-            f"{self.base_url}/embeddings",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json={"model": self.model, "input": list(texts)},
-            timeout=self.timeout,
-        )
+    def _fetch_batch(
+        self,
+        texts: Sequence[str],
+        *,
+        client: httpx.Client | None = None,
+    ) -> np.ndarray:
+        url = f"{self.base_url}/embeddings"
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        payload = {"model": self.model, "input": list(texts)}
+        if client is not None:
+            resp = client.post(url, headers=headers, json=payload)
+        else:
+            resp = httpx.post(url, headers=headers, json=payload, timeout=self.timeout)
         resp.raise_for_status()
         data = sorted(resp.json()["data"], key=lambda item: item["index"])
         mat = np.asarray([item["embedding"] for item in data], dtype=np.float32)
@@ -266,7 +316,13 @@ class OpenAIEmbeddingBackend(EmbeddingBackend):
     def fit_transform(self, texts: Sequence[str]) -> np.ndarray:
         if not texts:
             return np.zeros((0, 1), dtype=np.float32)
-        return self._fetch_batch(texts)
+        batches: list[np.ndarray] = []
+        with httpx.Client(timeout=self.timeout) as client:
+            for start in range(0, len(texts), self._BATCH_SIZE):
+                batches.append(
+                    self._fetch_batch(texts[start : start + self._BATCH_SIZE], client=client)
+                )
+        return np.vstack(batches).astype(np.float32)
 
     def embed_query(self, query: str) -> np.ndarray:
         return self._fetch_batch([query])[0]
@@ -281,19 +337,27 @@ def create_embedding_backend(settings: Settings) -> EmbeddingBackend:
             model=settings.embedding_model,
             timeout=settings.llm_timeout_seconds,
         )
-    if provider == "gemini" and settings.gemini_api_key:
-        return GeminiEmbeddingBackend(
-            api_key=settings.gemini_api_key,
-            base_url=settings.gemini_base_url,
-            model=settings.embedding_model,
-            timeout=settings.llm_timeout_seconds,
+    if provider == "gemini":
+        if settings.gemini_api_key:
+            return GeminiEmbeddingBackend(
+                api_key=settings.gemini_api_key,
+                base_url=settings.gemini_base_url,
+                model=settings.embedding_model,
+                timeout=settings.llm_timeout_seconds,
+            )
+        logger.warning(
+            "RAG_EMBEDDING_PROVIDER=gemini set without RAG_GEMINI_API_KEY; falling back to local-svd."
         )
-    if provider == "openai" and settings.openai_api_key:
-        return OpenAIEmbeddingBackend(
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-            model=settings.embedding_model,
-            timeout=settings.llm_timeout_seconds,
+    if provider == "openai":
+        if settings.openai_api_key:
+            return OpenAIEmbeddingBackend(
+                api_key=settings.openai_api_key,
+                base_url=settings.openai_base_url,
+                model=settings.embedding_model,
+                timeout=settings.llm_timeout_seconds,
+            )
+        logger.warning(
+            "RAG_EMBEDDING_PROVIDER=openai set without RAG_OPENAI_API_KEY; falling back to local-svd."
         )
     return LocalSVDEmbeddingBackend(n_components=settings.embedding_dim)
 
@@ -330,7 +394,7 @@ class DenseVectorRetriever:
         sims = self.embeddings @ q_vec
         # Clip to [0, 1] since negative cosine angles indicate orthogonal/unrelated topics
         sims = np.clip(sims, 0.0, 1.0)
-        top_indices = np.argsort(-sims)[:top_k]
+        top_indices = np.argsort(-sims, kind="stable")[:top_k]
         return [(int(idx), float(sims[idx])) for idx in top_indices]
 
     def score_all(self, query: str) -> np.ndarray:
@@ -569,8 +633,12 @@ class HybridRetriever:
 
         pool = max(self.candidate_pool_size, top_k * 3)
         bm25_ranked = self.bm25.search(query, top_k=pool)
-        dense_ranked = self.dense.search(query, top_k=pool)
         all_dense_scores = self.dense.score_all(query)
+        if all_dense_scores.size > 0:
+            top_dense_idx = np.argsort(-all_dense_scores, kind="stable")[:pool]
+            dense_ranked = [(int(idx), float(all_dense_scores[idx])) for idx in top_dense_idx]
+        else:
+            dense_ranked = []
 
         bm25_map: dict[int, tuple[int, float, list[str]]] = {
             idx: (rank, score, matched)

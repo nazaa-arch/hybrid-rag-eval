@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
@@ -22,9 +24,11 @@ from hybrid_rag.schemas import (
     IngestTextRequest,
     QueryRequest,
     QueryResponse,
+    validate_doc_id,
 )
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+logger = logging.getLogger(__name__)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -59,6 +63,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
+    @application.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal server error."},
+        )
+
     def _get_engine(request: Request) -> HybridRAGEngine:
         return request.app.state.engine  # type: ignore[no-any-return]
 
@@ -89,17 +101,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @application.delete("/v1/documents/{doc_id}", tags=["Corpus"])
     async def delete_document(doc_id: str, request: Request) -> dict[str, object]:
+        try:
+            safe_doc_id = validate_doc_id(doc_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
         engine = _get_engine(request)
-        deleted = engine.delete_document(doc_id)
+        deleted = engine.delete_document(safe_doc_id)
         if not deleted:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document '{doc_id}' not found.",
+                detail=f"Document '{safe_doc_id}' not found.",
             )
         docs, chunks = engine.counts()
         return {
             "deleted": True,
-            "doc_id": doc_id,
+            "doc_id": safe_doc_id,
             "total_documents": docs,
             "total_chunks": chunks,
         }
@@ -140,10 +159,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             upload = form.get("file")
             if upload is None or not hasattr(upload, "read"):
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=422,
                     detail="Multipart request must include a 'file' upload field.",
                 )
-            raw_bytes = await upload.read()
+            max_bytes = engine.settings.max_upload_bytes
+            raw_bytes = await upload.read(max_bytes + 1)
+            if len(raw_bytes) > max_bytes:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Uploaded file exceeds maximum allowed size of {max_bytes} bytes.",
+                )
             if not raw_bytes:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -172,27 +197,40 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             payload = IngestTextRequest.model_validate(payload_raw)
         except ValidationError as exc:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=exc.errors(),
+                status_code=422,
+                detail=json.loads(exc.json()),
             ) from exc
-        except Exception as exc:
+        except (json.JSONDecodeError, ValueError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid JSON payload: {exc}",
+                detail="Invalid JSON payload.",
             ) from exc
 
-        return engine.ingest_text(
-            doc_id=payload.doc_id,
-            title=payload.title,
-            content=payload.content,
-            source_type=payload.source_type,
-            metadata=payload.metadata,
-        )
+        try:
+            return engine.ingest_text(
+                doc_id=payload.doc_id,
+                title=payload.title,
+                content=payload.content,
+                source_type=payload.source_type,
+                metadata=payload.metadata,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
 
     @application.post("/v1/query", response_model=QueryResponse, tags=["RAG"])
     async def query_rag(body: QueryRequest, request: Request) -> QueryResponse:
         """Run Hybrid, BM25, or Dense RAG query with inline citations and faithfulness score."""
-        return await _get_engine(request).query(body)
+        try:
+            return await _get_engine(request).query(body)
+        except (httpx.HTTPError, RuntimeError) as exc:
+            logger.exception("Provider failure during /v1/query")
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Upstream model provider request failed.",
+            ) from exc
 
     @application.post("/v1/query/stream", tags=["RAG"])
     async def query_rag_stream(body: QueryRequest, request: Request) -> StreamingResponse:
@@ -200,9 +238,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         engine = _get_engine(request)
 
         async def event_generator() -> AsyncIterator[str]:
-            async for event_name, payload in engine.stream_query(body):
-                data_json = json.dumps(payload, ensure_ascii=False)
-                yield f"event: {event_name}\ndata: {data_json}\n\n"
+            try:
+                async for event_name, payload in engine.stream_query(body):
+                    data_json = json.dumps(payload, ensure_ascii=False)
+                    yield f"event: {event_name}\ndata: {data_json}\n\n"
+            except (httpx.HTTPError, RuntimeError):
+                logger.exception("Provider failure during /v1/query/stream")
+                err_json = json.dumps({"detail": "Upstream model provider request failed."})
+                yield f"event: error\ndata: {err_json}\n\n"
+            except Exception:
+                logger.exception("Unexpected error during /v1/query/stream")
+                err_json = json.dumps({"detail": "Internal streaming error."})
+                yield f"event: error\ndata: {err_json}\n\n"
 
         return StreamingResponse(
             event_generator(),
@@ -226,7 +273,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "Run `python eval/run_eval.py` to generate it."
                 ),
             )
-        data = json.loads(report_path.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.exception("Failed to parse evaluation report at %s", report_path)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Evaluation report could not be read.",
+            ) from exc
         return JSONResponse(content=data)
 
     return application

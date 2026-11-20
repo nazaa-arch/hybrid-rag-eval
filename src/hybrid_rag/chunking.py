@@ -42,6 +42,8 @@ class StructureAwareChunker:
     ) -> tuple[Document, list[Chunk]]:
         """Chunk raw markdown or plain-text content into Document + Chunk list."""
         cleaned = normalize_text(content).strip()
+        if not cleaned:
+            raise ValueError("Document content cannot be empty.")
         content_hash = hashlib.sha256(cleaned.encode("utf-8")).hexdigest()[:16]
         doc_meta = dict(metadata or {})
 
@@ -56,6 +58,8 @@ class StructureAwareChunker:
             blocks=blocks,
             base_metadata=doc_meta,
         )
+        if not chunks:
+            raise ValueError("Document produced no indexable text chunks.")
 
         document = Document(
             doc_id=doc_id,
@@ -103,6 +107,8 @@ class StructureAwareChunker:
             blocks=blocks,
             base_metadata=doc_meta,
         )
+        if not chunks:
+            raise ValueError("PDF contains no extractable text.")
 
         total_chars = sum(len(t) for _, t in pages)
         document = Document(
@@ -156,17 +162,20 @@ class StructureAwareChunker:
         try:
             import fitz  # type: ignore[import-untyped]
 
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            pages = [(idx + 1, page.get_text("text")) for idx, page in enumerate(doc)]
-            doc.close()
-            return pages
+            with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+                return [(idx + 1, page.get_text("text")) for idx, page in enumerate(doc)]
         except Exception:
             from io import BytesIO
 
             from pypdf import PdfReader
 
-            reader = PdfReader(BytesIO(pdf_bytes))
-            return [(idx + 1, page.extract_text() or "") for idx, page in enumerate(reader.pages)]
+            try:
+                reader = PdfReader(BytesIO(pdf_bytes))
+                return [
+                    (idx + 1, page.extract_text() or "") for idx, page in enumerate(reader.pages)
+                ]
+            except Exception as exc:
+                raise ValueError("Invalid or corrupted PDF file.") from exc
 
     def _extract_markdown_sections(
         self,

@@ -270,7 +270,7 @@
     <div class="header-actions">
       <span class="status-pill" id="healthPill"><span class="dot"></span> Loading index...</span>
       <button type="button" id="openIngestBtn">+ Ingest Document</button>
-      <a class="btn-link" href="/docs" target="_blank">OpenAPI /docs</a>
+      <a class="btn-link" href="/docs" target="_blank" rel="noopener noreferrer">OpenAPI /docs</a>
     </div>
   </header>
 
@@ -406,7 +406,8 @@
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function renderAnswerWithCitations(text) {
@@ -446,8 +447,8 @@
           <div class="hit-card" id="hit-${escapeHtml(key)}">
             <div class="hit-top">
               <div>
-                <div class="hit-id">#${h.rank} &middot; [${escapeHtml(key)}]</div>
-                <div class="hit-section">${escapeHtml(h.chunk.title)} &rsaquo; ${escapeHtml(h.chunk.section)}${h.chunk.page ? ` (p.${h.chunk.page})` : ""}</div>
+                <div class="hit-id">#${Number(h.rank)} &middot; [${escapeHtml(key)}]</div>
+                <div class="hit-section">${escapeHtml(h.chunk.title)} &rsaquo; ${escapeHtml(h.chunk.section)}${h.chunk.page ? ` (p.${Number(h.chunk.page)})` : ""}</div>
               </div>
               <span class="badge badge-cyan">score ${Number(h.score).toFixed(3)}</span>
             </div>
@@ -528,7 +529,7 @@
 
       $("runQueryBtn").disabled = true;
       $("answerBox").classList.remove("abstained");
-      $("metricsStrip").innerHTML = `<span class="badge">Retrieving (${currentMode})...</span>`;
+      $("metricsStrip").innerHTML = `<span class="badge">Retrieving (${escapeHtml(currentMode)})...</span>`;
       $("answerText").textContent = "";
       $("citationsList").style.display = "none";
 
@@ -573,12 +574,14 @@
               const payload = JSON.parse(dataStr);
               if (evName === "metadata") {
                 renderHits(payload.hits || []);
-                $("metricsStrip").innerHTML = `<span class="badge">Streaming (${payload.mode}) &middot; retrieval ${payload.retrieval_ms} ms</span>`;
+                $("metricsStrip").innerHTML = `<span class="badge">Streaming (${escapeHtml(payload.mode)}) &middot; retrieval ${Number(payload.retrieval_ms).toFixed(1)} ms</span>`;
               } else if (evName === "token") {
                 streamedAnswer += payload.delta || "";
                 $("answerText").textContent = streamedAnswer;
               } else if (evName === "done") {
                 renderFinalResponse(payload);
+              } else if (evName === "error") {
+                throw new Error(payload.detail || "Streaming error");
               }
             }
           }
@@ -592,29 +595,40 @@
     }
 
     async function loadHealthAndDocs() {
-      const hResp = await fetch("/health");
-      const health = await hResp.json();
-      $("healthPill").innerHTML = `<span class="dot"></span> ${health.documents_indexed} docs &middot; ${health.chunks_indexed} chunks`;
-      $("providerBadge").textContent = `${health.llm_provider} | ${health.embedding_provider}`;
+      try {
+        const hResp = await fetch("/health");
+        if (hResp.ok) {
+          const health = await hResp.json();
+          $("healthPill").innerHTML = `<span class="dot"></span> ${Number(health.documents_indexed)} docs &middot; ${Number(health.chunks_indexed)} chunks`;
+          $("providerBadge").textContent = `${health.llm_provider} | ${health.embedding_provider}`;
+        }
 
-      const dResp = await fetch("/v1/documents");
-      const docs = await dResp.json();
-      $("docList").innerHTML = docs.map((d) => `
-        <div class="doc-item">
-          <div>
-            <strong>${escapeHtml(d.doc_id)}</strong>
-            <div style="color:var(--text-muted);font-size:0.74rem;">${escapeHtml(d.title)} &middot; ${d.chunk_count} chunks (${d.source_type})</div>
-          </div>
-          <button type="button" onclick="deleteDoc('${escapeHtml(d.doc_id)}')">Delete</button>
-        </div>
-      `).join("");
+        const dResp = await fetch("/v1/documents");
+        if (dResp.ok) {
+          const docs = await dResp.json();
+          $("docList").innerHTML = docs.map((d) => `
+            <div class="doc-item">
+              <div>
+                <strong>${escapeHtml(d.doc_id)}</strong>
+                <div style="color:var(--text-muted);font-size:0.74rem;">${escapeHtml(d.title)} &middot; ${Number(d.chunk_count)} chunks (${escapeHtml(d.source_type)})</div>
+              </div>
+              <button type="button" data-delete-doc="${escapeHtml(d.doc_id)}">Delete</button>
+            </div>
+          `).join("");
+          $("docList").querySelectorAll("[data-delete-doc]").forEach((btn) => {
+            btn.addEventListener("click", () => deleteDoc(btn.dataset.deleteDoc));
+          });
+        }
+      } catch (err) {
+        $("healthPill").textContent = "Health unavailable";
+      }
     }
 
     async function deleteDoc(docId) {
+      if (!docId) return;
       await fetch(`/v1/documents/${encodeURIComponent(docId)}`, { method: "DELETE" });
       await loadHealthAndDocs();
     }
-    window.deleteDoc = deleteDoc;
 
     async function loadEvalReport() {
       try {

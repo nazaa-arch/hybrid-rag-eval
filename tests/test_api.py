@@ -3,8 +3,17 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Literal
 
+import pytest
 from fastapi.testclient import TestClient
+
+from hybrid_rag.api import create_app
+from hybrid_rag.config import Settings
+from hybrid_rag.providers import BaseAnswerProvider
+from hybrid_rag.schemas import RetrievalHit
 
 
 def test_ui_and_health_endpoints(api_client: TestClient) -> None:
@@ -145,3 +154,139 @@ def test_latest_eval_endpoint(api_client: TestClient) -> None:
     data = resp.json()
     assert set(data["modes"].keys()) == {"bm25", "dense", "hybrid"}
     assert data["total_queries"] >= 25
+
+
+def test_security_upload_validation_and_sanitization(
+    api_client: TestClient,
+    tmp_path: Path,
+) -> None:
+    # 1. Unsupported extension -> 400
+    bad_ext = api_client.post(
+        "/v1/ingest",
+        files={"file": ("malware.exe", b"MZ\x90\x00", "application/octet-stream")},
+    )
+    assert bad_ext.status_code == 400
+
+    # 2. Corrupted PDF -> 400 (never 500)
+    bad_pdf = api_client.post(
+        "/v1/ingest",
+        files={"file": ("broken.pdf", b"not-a-real-pdf-header", "application/pdf")},
+    )
+    assert bad_pdf.status_code == 400
+
+    # 3. Path traversal filename is stripped to basename and safe doc_id
+    traversal = api_client.post(
+        "/v1/ingest",
+        files={"file": ("../../etc/safe_notes.md", b"# Safe\nPolicy content.", "text/markdown")},
+    )
+    assert traversal.status_code == 200
+    doc = traversal.json()["document"]
+    assert doc["doc_id"] == "safe_notes"
+    assert doc["metadata"]["filename"] == "safe_notes.md"
+
+    # 4. Unsafe doc_id (XSS / traversal / citation break) rejected with 422 / 400
+    for bad_id in ("../etc/passwd", "x');alert(1);//", "bad#id", "has spaces"):
+        resp = api_client.post(
+            "/v1/ingest",
+            json={
+                "doc_id": bad_id,
+                "title": "Test",
+                "content": "Valid body content.",
+                "source_type": "markdown",
+            },
+        )
+        assert resp.status_code == 422
+
+    # 5. Whitespace-only content rejected with 400
+    ws_resp = api_client.post(
+        "/v1/ingest",
+        json={
+            "doc_id": "blank_doc",
+            "title": "Blank",
+            "content": "   \n\t  ",
+            "source_type": "text",
+        },
+    )
+    assert ws_resp.status_code == 400
+
+    # 6. Malformed JSON rejected with 400
+    malformed = api_client.post(
+        "/v1/ingest",
+        content=b"{not valid json",
+        headers={"Content-Type": "application/json"},
+    )
+    assert malformed.status_code == 400
+    assert malformed.json()["detail"] == "Invalid JSON payload."
+
+    # 7. Invalid doc_id on DELETE rejected with 400
+    bad_del = api_client.delete("/v1/documents/bad;id")
+    assert bad_del.status_code == 400
+
+    # 8. Oversized file rejected with 413
+    small_limit_settings = Settings(
+        index_dir=tmp_path / "small_idx",
+        auto_load_corpus=False,
+        max_upload_bytes=1024,
+    )
+    with TestClient(create_app(settings=small_limit_settings)) as limited_client:
+        oversized = limited_client.post(
+            "/v1/ingest",
+            files={"file": ("big.txt", b"a" * 2048, "text/plain")},
+        )
+        assert oversized.status_code == 413
+
+
+def test_ui_html_hardened_against_inline_xss(api_client: TestClient) -> None:
+    html = api_client.get("/").text
+    assert "onclick=" not in html
+    assert "&#39;" in html
+    assert "data-delete-doc" in html
+
+
+class _FailingProvider(BaseAnswerProvider):
+    name = "failing-test-provider"
+
+    async def generate(
+        self,
+        *,
+        query: str,
+        hits: Sequence[RetrievalHit],
+        language: Literal["id", "en"],
+    ) -> str:
+        raise RuntimeError("secret upstream error")
+
+    async def stream(
+        self,
+        *,
+        query: str,
+        hits: Sequence[RetrievalHit],
+        language: Literal["id", "en"],
+    ):
+        raise RuntimeError("secret stream failure")
+        yield ""  # pragma: no cover
+
+
+def test_provider_failure_sanitized_in_rest_and_sse(
+    isolated_settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app = create_app(settings=isolated_settings)
+    with TestClient(app) as client:
+        monkeypatch.setattr(app.state.engine, "provider", _FailingProvider())
+
+        resp = client.post(
+            "/v1/query",
+            json={"query": "What PSI thresholds define amber and critical data drift?", "mode": "hybrid"},
+        )
+        assert resp.status_code == 502
+        assert "secret upstream error" not in resp.text
+
+        with client.stream(
+            "POST",
+            "/v1/query/stream",
+            json={"query": "What PSI thresholds define amber and critical data drift?", "mode": "hybrid"},
+        ) as stream_resp:
+            assert stream_resp.status_code == 200
+            raw = "".join(stream_resp.iter_text())
+        assert "event: error" in raw
+        assert "secret stream failure" not in raw

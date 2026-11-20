@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import httpx
+import numpy as np
+import pytest
+
 from hybrid_rag.engine import HybridRAGEngine
+from hybrid_rag.providers import GeminiProvider
 from hybrid_rag.retrieval import (
     BM25Retriever,
     DenseVectorRetriever,
+    EmbeddingBackend,
+    GeminiEmbeddingBackend,
     HybridRetriever,
+    LocalSVDEmbeddingBackend,
     ReciprocalRankFusion,
 )
-from hybrid_rag.schemas import Chunk
+from hybrid_rag.schemas import Chunk, RetrievalHit
 from hybrid_rag.text_utils import detect_language, tokenize
 
 
@@ -103,3 +111,94 @@ def test_tiny_corpus_edge_case_does_not_crash() -> None:
     empty_dense = DenseVectorRetriever()
     empty_dense.fit([])
     assert empty_dense.search("anything") == []
+
+    # Punctuation-only corpus must not crash TfidfVectorizer with empty vocabulary
+    svd = LocalSVDEmbeddingBackend()
+    vecs = svd.fit_transform(["!!!", "???"])
+    assert vecs.shape[0] == 2
+    q_vec = svd.embed_query("hello world")
+    assert q_vec.shape[0] == vecs.shape[1]
+
+
+def test_hybrid_retriever_embeds_query_only_once() -> None:
+    class _CountingBackend(EmbeddingBackend):
+        name = "counting"
+
+        def __init__(self) -> None:
+            self.embed_calls = 0
+
+        def fit_transform(self, texts: list[str]) -> np.ndarray:
+            return np.ones((len(texts), 4), dtype=np.float32) * 0.5
+
+        def embed_query(self, query: str) -> np.ndarray:
+            self.embed_calls += 1
+            return np.ones((4,), dtype=np.float32) * 0.5
+
+    backend = _CountingBackend()
+    retriever = HybridRetriever(embedding_backend=backend)
+    retriever.index(
+        [
+            Chunk(chunk_id="c000", doc_id="d1", title="T", section="S", text="hello alpha"),
+            Chunk(chunk_id="c001", doc_id="d2", title="T", section="S", text="hello beta"),
+        ]
+    )
+    retriever.retrieve("hello alpha", mode="hybrid", top_k=2)
+    assert backend.embed_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_gemini_auth_uses_header_not_url_query_param(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_requests: list[tuple[str, dict[str, str]]] = []
+    secret_key = "test-gemini-secret-key"
+
+    def _mock_post(self: httpx.Client, url: str, **kwargs: object) -> httpx.Response:
+        headers = {k.lower(): str(v) for k, v in (kwargs.get("headers") or {}).items()}  # type: ignore[union-attr]
+        captured_requests.append((str(url), headers))
+        return httpx.Response(
+            200,
+            json={"embedding": {"values": [0.6, 0.8]}},
+            request=httpx.Request("POST", url),
+        )
+
+    async def _mock_async_post(
+        self: httpx.AsyncClient, url: str, **kwargs: object
+    ) -> httpx.Response:
+        headers = {k.lower(): str(v) for k, v in (kwargs.get("headers") or {}).items()}  # type: ignore[union-attr]
+        captured_requests.append((str(url), headers))
+        return httpx.Response(
+            200,
+            json={"candidates": [{"content": {"parts": [{"text": "Grounded answer [d1#c000]."}]}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    monkeypatch.setattr(httpx.Client, "post", _mock_post)
+    monkeypatch.setattr(httpx.AsyncClient, "post", _mock_async_post)
+
+    emb = GeminiEmbeddingBackend(
+        api_key=secret_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta",
+        model="text-embedding-004",
+    )
+    vec = emb.fit_transform(["hello"])
+    assert vec.shape == (1, 2)
+
+    provider = GeminiProvider(
+        api_key=secret_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta",
+        model="gemini-2.0-flash",
+    )
+    hit = RetrievalHit(
+        chunk=Chunk(chunk_id="c000", doc_id="d1", title="T", section="S", text="hello"),
+        rank=1,
+        score=0.9,
+    )
+    ans = await provider.generate(query="hello", hits=[hit], language="en")
+    assert "Grounded answer" in ans
+
+    assert len(captured_requests) == 2
+    for url, headers in captured_requests:
+        assert secret_key not in url
+        assert "key=" not in url
+        assert headers.get("x-goog-api-key") == secret_key

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Sequence
 from typing import Literal
@@ -13,6 +14,8 @@ import httpx
 from hybrid_rag.config import Settings
 from hybrid_rag.grounding import GroundingEngine
 from hybrid_rag.schemas import RetrievalHit
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_GROUNDING_PROMPT = (
     "You are a strict enterprise RAG assistant. Answer ONLY using the provided context chunks. "
@@ -148,7 +151,13 @@ class OllamaProvider(BaseAnswerProvider):
                 json=self._payload(query, hits, stream=False),
             )
             resp.raise_for_status()
-            return str(resp.json()["message"]["content"]).strip()
+            data = resp.json()
+            if data.get("error"):
+                raise RuntimeError(f"Ollama error: {data['error']}")
+            content = (data.get("message") or {}).get("content")
+            if not isinstance(content, str) or not content.strip():
+                raise RuntimeError("Ollama returned an empty response.")
+            return content.strip()
 
     async def stream(
         self,
@@ -164,16 +173,23 @@ class OllamaProvider(BaseAnswerProvider):
         ) as resp:
             resp.raise_for_status()
             async for line in resp.aiter_lines():
-                if not line:
+                if not line.strip():
                     continue
-                chunk = json.loads(line)
-                delta = chunk.get("message", {}).get("content", "")
+                try:
+                    chunk = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if chunk.get("error"):
+                    raise RuntimeError(f"Ollama stream error: {chunk['error']}")
+                delta = (chunk.get("message") or {}).get("content") or ""
                 if delta:
                     yield str(delta)
+                if chunk.get("done"):
+                    break
 
 
 class GeminiProvider(BaseAnswerProvider):
-    """Google Gemini REST API adapter via httpx."""
+    """Google Gemini REST API adapter via httpx using x-goog-api-key header auth."""
 
     def __init__(
         self,
@@ -189,16 +205,19 @@ class GeminiProvider(BaseAnswerProvider):
         self.model = model
         self.timeout = timeout
 
-    async def generate(
+    def _headers(self) -> dict[str, str]:
+        return {
+            "x-goog-api-key": self.api_key,
+            "Content-Type": "application/json",
+        }
+
+    def _payload(
         self,
-        *,
         query: str,
         hits: Sequence[RetrievalHit],
-        language: Literal["id", "en"],
-    ) -> str:
+    ) -> dict[str, object]:
         context = build_context_block(hits)
-        url = f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}"
-        payload = {
+        return {
             "systemInstruction": {"parts": [{"text": SYSTEM_GROUNDING_PROMPT}]},
             "contents": [
                 {
@@ -215,12 +234,67 @@ class GeminiProvider(BaseAnswerProvider):
             ],
             "generationConfig": {"temperature": 0.1},
         }
+
+    @staticmethod
+    def _extract_text(data: dict[str, object]) -> str:
+        candidates = data.get("candidates")
+        if not isinstance(candidates, list) or not candidates:
+            return ""
+        first = candidates[0] if isinstance(candidates[0], dict) else {}
+        content = first.get("content") if isinstance(first, dict) else {}
+        parts = content.get("parts") if isinstance(content, dict) else []
+        if not isinstance(parts, list):
+            return ""
+        return "".join(str(p.get("text", "")) for p in parts if isinstance(p, dict))
+
+    async def generate(
+        self,
+        *,
+        query: str,
+        hits: Sequence[RetrievalHit],
+        language: Literal["id", "en"],
+    ) -> str:
+        url = f"{self.base_url}/models/{self.model}:generateContent"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(url, json=payload)
+            resp = await client.post(
+                url,
+                headers=self._headers(),
+                json=self._payload(query, hits),
+            )
             resp.raise_for_status()
-            data = resp.json()
-            parts = data["candidates"][0]["content"]["parts"]
-            return "".join(str(p.get("text", "")) for p in parts).strip()
+            text = self._extract_text(resp.json()).strip()
+            if not text:
+                raise RuntimeError("Gemini returned no candidate content.")
+            return text
+
+    async def stream(
+        self,
+        *,
+        query: str,
+        hits: Sequence[RetrievalHit],
+        language: Literal["id", "en"],
+    ) -> AsyncIterator[str]:
+        url = f"{self.base_url}/models/{self.model}:streamGenerateContent?alt=sse"
+        async with httpx.AsyncClient(timeout=self.timeout) as client, client.stream(
+            "POST",
+            url,
+            headers=self._headers(),
+            json=self._payload(query, hits),
+        ) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                data_str = line[5:].strip()
+                if not data_str or data_str == "[DONE]":
+                    continue
+                try:
+                    chunk = json.loads(data_str)
+                except json.JSONDecodeError:
+                    continue
+                delta = self._extract_text(chunk)
+                if delta:
+                    yield delta
 
 
 class OpenAIProvider(BaseAnswerProvider):
@@ -281,7 +355,14 @@ class OpenAIProvider(BaseAnswerProvider):
                 json=self._payload(query, hits, stream=False),
             )
             resp.raise_for_status()
-            return str(resp.json()["choices"][0]["message"]["content"]).strip()
+            data = resp.json()
+            choices = data.get("choices") or []
+            if not choices:
+                raise RuntimeError("OpenAI-compatible provider returned no choices.")
+            content = (choices[0].get("message") or {}).get("content")
+            if not isinstance(content, str) or not content.strip():
+                raise RuntimeError("OpenAI-compatible provider returned empty content.")
+            return content.strip()
 
     async def stream(
         self,
@@ -298,13 +379,21 @@ class OpenAIProvider(BaseAnswerProvider):
         ) as resp:
             resp.raise_for_status()
             async for line in resp.aiter_lines():
-                if not line.startswith("data: "):
+                if not line.startswith("data:"):
                     continue
-                data_str = line[6:].strip()
-                if data_str == "[DONE]":
-                    break
-                chunk = json.loads(data_str)
-                delta = chunk["choices"][0].get("delta", {}).get("content", "")
+                data_str = line[5:].strip()
+                if not data_str or data_str == "[DONE]":
+                    if data_str == "[DONE]":
+                        break
+                    continue
+                try:
+                    chunk = json.loads(data_str)
+                except json.JSONDecodeError:
+                    continue
+                choices = chunk.get("choices") or []
+                if not choices:
+                    continue
+                delta = (choices[0].get("delta") or {}).get("content") or ""
                 if delta:
                     yield str(delta)
 
@@ -320,18 +409,26 @@ def create_answer_provider(
             model=settings.llm_model,
             timeout=settings.llm_timeout_seconds,
         )
-    if settings.llm_provider == "gemini" and settings.gemini_api_key:
-        return GeminiProvider(
-            api_key=settings.gemini_api_key,
-            base_url=settings.gemini_base_url,
-            model=settings.llm_model,
-            timeout=settings.llm_timeout_seconds,
+    if settings.llm_provider == "gemini":
+        if settings.gemini_api_key:
+            return GeminiProvider(
+                api_key=settings.gemini_api_key,
+                base_url=settings.gemini_base_url,
+                model=settings.llm_model,
+                timeout=settings.llm_timeout_seconds,
+            )
+        logger.warning(
+            "RAG_LLM_PROVIDER=gemini set without RAG_GEMINI_API_KEY; falling back to extractive-grounded."
         )
-    if settings.llm_provider == "openai" and settings.openai_api_key:
-        return OpenAIProvider(
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-            model=settings.llm_model,
-            timeout=settings.llm_timeout_seconds,
+    if settings.llm_provider == "openai":
+        if settings.openai_api_key:
+            return OpenAIProvider(
+                api_key=settings.openai_api_key,
+                base_url=settings.openai_base_url,
+                model=settings.llm_model,
+                timeout=settings.llm_timeout_seconds,
+            )
+        logger.warning(
+            "RAG_LLM_PROVIDER=openai set without RAG_OPENAI_API_KEY; falling back to extractive-grounded."
         )
     return ExtractiveGroundedProvider(grounding=grounding)
